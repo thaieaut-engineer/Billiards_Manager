@@ -673,6 +673,46 @@
     </item>
    </layout>
   </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1024</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuTaiKhoan">
+    <property name="title">
+     <string>Tài khoản</string>
+    </property>
+    <addaction name="actionTaoTaiKhoan"/>
+    <addaction name="actionDangXuat"/>
+   </widget>
+  </widget>
+  <widget class="QToolBar" name="mainToolBar">
+   <property name="windowTitle">
+    <string>Thao tác</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>Qt::TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionDangXuat"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionTaoTaiKhoan">
+   <property name="text">
+    <string>Tạo tài khoản...</string>
+   </property>
+  </action>
+  <action name="actionDangXuat">
+   <property name="text">
+    <string>Đăng xuất</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>

@@ -59,6 +59,15 @@ CREATE TABLE IF NOT EXISTS chi_tiet_hoa_don (
     FOREIGN KEY (hoa_don_id) REFERENCES hoa_don(id),
     FOREIGN KEY (dich_vu_id) REFERENCES dich_vu(id)
 );
+CREATE TABLE IF NOT EXISTS tai_khoan (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ten_dang_nhap TEXT NOT NULL UNIQUE,
+    mat_khau_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    ho_ten TEXT NOT NULL DEFAULT '',
+    vai_tro TEXT NOT NULL CHECK (vai_tro IN ('admin', 'nhan_vien')),
+    ngay_tao DATETIME
+);
 """
 
 

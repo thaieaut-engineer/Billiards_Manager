@@ -3,20 +3,31 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
     QComboBox,
+    QDialog,
     QFileDialog,
     QMessageBox,
     QTableWidgetItem,
 )
 
+from app.auth import Session
 from app.database import Database
+from app.dialogs import RegisterDialog
 from app.widgets import BanTile
-from app.models import BanModel, DichVuModel, HoaDonModel, NhanVienModel, PhienChoiModel
+from app.models import (
+    BanModel,
+    DichVuModel,
+    HoaDonModel,
+    NhanVienModel,
+    PhienChoiModel,
+    TaiKhoanModel,
+)
 from app.models.hoa_don_model import ChiTietLine
 from app.views import MainWindowView
 
@@ -38,24 +49,32 @@ class _TamDichVu:
 
 
 class MainController:
-    def __init__(self, view: MainWindowView, database: Database) -> None:
+    def __init__(self, view: MainWindowView, database: Database, session: Session) -> None:
         self._view = view
         self._db = database
         self._conn = database.connect()
+        self._session = session
         self._ban = BanModel(self._conn)
         self._nv = NhanVienModel(self._conn)
         self._dv = DichVuModel(self._conn)
         self._phien = PhienChoiModel(self._conn)
         self._hd = HoaDonModel(self._conn)
+        self._tai_khoan = TaiKhoanModel(self._conn)
         self._tam_dich_vu_theo_phien: dict[int, list[_TamDichVu]] = {}
         self._phien_dang_chon: int | None = None
         self._phien_ban_tiles: dict[int, BanTile] = {}
         self._filter_loai: str | None = None  # None=tất cả; ''=chưa gán loại
+        self._on_logout: Callable[[], None] | None = None
+
+    def set_logout_handler(self, handler: Callable[[], None]) -> None:
+        self._on_logout = handler
 
     def setup(self) -> None:
         self._init_tables()
         self._setup_loai_ban_combo()
         self._wire_signals()
+        self._apply_permissions()
+        self._setup_session_status()
         self.refresh_ban()
         self.refresh_nhan_vien()
         self.refresh_dich_vu()
@@ -142,6 +161,9 @@ class MainController:
 
         v.btnLocDoanhThu.clicked.connect(self.refresh_doanh_thu)
 
+        v.actionTaoTaiKhoan.triggered.connect(self._on_tao_tai_khoan)
+        v.actionDangXuat.triggered.connect(self._on_dang_xuat)
+
     def _setup_doanh_thu_dates(self) -> None:
         today = date.today()
         self._view.dateTu.setDate(today)
@@ -154,6 +176,58 @@ class MainController:
             c.addItem(s)
         c.setCurrentIndex(-1)
         c.setEditText("")
+
+    def _setup_session_status(self) -> None:
+        role = "Quản trị" if self._session.is_admin() else "Nhân viên"
+        name = self._session.ho_ten or self._session.ten_dang_nhap
+        self._view.statusBar().showMessage(f"Đăng nhập: {name} ({role})", 0)
+
+    def _apply_permissions(self) -> None:
+        staff = self._session.vai_tro == "nhan_vien"
+        admin = self._session.is_admin()
+        tw = self._view.tabWidget.tabBar()
+        tw.setTabVisible(1, not staff)
+        tw.setTabVisible(5, not staff)
+        self._view.btnBanThem.setEnabled(not staff)
+        self._view.btnBanSua.setEnabled(not staff)
+        self._view.btnBanXoa.setEnabled(not staff)
+        self._view.editTenBan.setReadOnly(staff)
+        self._view.comboLoaiBan.setEnabled(not staff)
+        self._view.spinGiaGio.setReadOnly(staff)
+        self._view.btnNVThem.setEnabled(not staff)
+        self._view.btnNVSua.setEnabled(not staff)
+        self._view.btnNVXoa.setEnabled(not staff)
+        self._view.btnDVThem.setEnabled(not staff)
+        self._view.btnDVSua.setEnabled(not staff)
+        self._view.btnDVXoa.setEnabled(not staff)
+        self._view.btnLocDoanhThu.setEnabled(not staff)
+        self._view.actionTaoTaiKhoan.setVisible(admin)
+        self._view.actionTaoTaiKhoan.setEnabled(admin)
+
+    def _on_tao_tai_khoan(self) -> None:
+        if not self._session.is_admin():
+            return
+        dlg = RegisterDialog(
+            self._tai_khoan,
+            first_user=False,
+            allow_role_select=True,
+            parent=self._view,
+        )
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            QMessageBox.information(self._view, "Đã tạo", "Đã tạo tài khoản mới.")
+
+    def _on_dang_xuat(self) -> None:
+        if (
+            QMessageBox.question(
+                self._view,
+                "Đăng xuất",
+                "Bạn có chắc muốn đăng xuất?",
+            )
+            != QMessageBox.StandardButton.Yes
+        ):
+            return
+        if self._on_logout:
+            self._on_logout()
 
     @staticmethod
     def _loai_ban_display(r: sqlite3.Row) -> str:
