@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
 
 from app.auth import Session
 from app.database import Database
-from app.dialogs import RegisterDialog
+from app.dialogs import ChangePasswordDialog, RegisterDialog
 from app.widgets import BanTile
 from app.models import (
     BanModel,
@@ -82,6 +82,15 @@ class MainController:
         self.refresh_hoa_don()
         self._setup_doanh_thu_dates()
         self.refresh_doanh_thu()
+        self.refresh_tai_khoan()
+
+    def _tab_index_by_name(self, name: str) -> int:
+        tw = self._view.tabWidget
+        for i in range(tw.count()):
+            w = tw.widget(i)
+            if w is not None and w.objectName() == name:
+                return i
+        return -1
 
     def _init_tables(self) -> None:
         t = self._view.tableBan
@@ -120,6 +129,13 @@ class MainController:
         t.setColumnCount(7)
         t.setHorizontalHeaderLabels(
             ["ID", "Bàn", "Giờ chơi (h)", "Tiền bàn", "DV", "Tổng", "Ngày tạo"]
+        )
+        t.horizontalHeader().setStretchLastSection(True)
+
+        t = self._view.tableTaiKhoan
+        t.setColumnCount(5)
+        t.setHorizontalHeaderLabels(
+            ["ID", "Tên đăng nhập", "Họ tên", "Vai trò", "Ngày tạo"]
         )
         t.horizontalHeader().setStretchLastSection(True)
 
@@ -164,6 +180,11 @@ class MainController:
         v.actionTaoTaiKhoan.triggered.connect(self._on_tao_tai_khoan)
         v.actionDangXuat.triggered.connect(self._on_dang_xuat)
 
+        v.btnTaiKhoanLamMoi.clicked.connect(self.refresh_tai_khoan)
+        v.btnTaiKhoanThem.clicked.connect(self._on_tao_tai_khoan)
+        v.btnTaiKhoanDoiMatKhau.clicked.connect(self._on_tai_khoan_doi_mat_khau)
+        v.btnTaiKhoanXoa.clicked.connect(self._on_tai_khoan_xoa)
+
     def _setup_doanh_thu_dates(self) -> None:
         today = date.today()
         self._view.dateTu.setDate(today)
@@ -185,9 +206,15 @@ class MainController:
     def _apply_permissions(self) -> None:
         staff = self._session.vai_tro == "nhan_vien"
         admin = self._session.is_admin()
-        tw = self._view.tabWidget.tabBar()
-        tw.setTabVisible(1, not staff)
-        tw.setTabVisible(5, not staff)
+        tb = self._view.tabWidget.tabBar()
+        for name, visible in (
+            ("tabNhanVien", not staff),
+            ("tabTaiKhoan", admin),
+            ("tabDoanhThu", not staff),
+        ):
+            i = self._tab_index_by_name(name)
+            if i >= 0:
+                tb.setTabVisible(i, visible)
         self._view.btnBanThem.setEnabled(not staff)
         self._view.btnBanSua.setEnabled(not staff)
         self._view.btnBanXoa.setEnabled(not staff)
@@ -203,6 +230,13 @@ class MainController:
         self._view.btnLocDoanhThu.setEnabled(not staff)
         self._view.actionTaoTaiKhoan.setVisible(admin)
         self._view.actionTaoTaiKhoan.setEnabled(admin)
+        for w in (
+            self._view.btnTaiKhoanLamMoi,
+            self._view.btnTaiKhoanThem,
+            self._view.btnTaiKhoanDoiMatKhau,
+            self._view.btnTaiKhoanXoa,
+        ):
+            w.setEnabled(admin)
 
     def _on_tao_tai_khoan(self) -> None:
         if not self._session.is_admin():
@@ -214,7 +248,95 @@ class MainController:
             parent=self._view,
         )
         if dlg.exec() == QDialog.DialogCode.Accepted:
+            self.refresh_tai_khoan()
             QMessageBox.information(self._view, "Đã tạo", "Đã tạo tài khoản mới.")
+
+    def refresh_tai_khoan(self) -> None:
+        if not self._session.is_admin():
+            return
+        rows = self._tai_khoan.list_all()
+        t = self._view.tableTaiKhoan
+        role_vn = {"admin": "Quản trị", "nhan_vien": "Nhân viên"}
+        t.setRowCount(len(rows))
+        for i, r in enumerate(rows):
+            t.setItem(i, 0, QTableWidgetItem(str(r["id"])))
+            t.setItem(i, 1, QTableWidgetItem(r["ten_dang_nhap"] or ""))
+            t.setItem(i, 2, QTableWidgetItem(r["ho_ten"] or ""))
+            vr = (r["vai_tro"] or "").strip()
+            t.setItem(i, 3, QTableWidgetItem(role_vn.get(vr, vr)))
+            t.setItem(i, 4, QTableWidgetItem(str(r["ngay_tao"] or "")))
+        t.clearSelection()
+
+    def _selected_tai_khoan_id(self) -> int | None:
+        rows = self._view.tableTaiKhoan.selectionModel().selectedRows()
+        if not rows:
+            return None
+        it = self._view.tableTaiKhoan.item(rows[0].row(), 0)
+        return int(it.text()) if it else None
+
+    def _on_tai_khoan_doi_mat_khau(self) -> None:
+        if not self._session.is_admin():
+            return
+        uid = self._selected_tai_khoan_id()
+        if uid is None:
+            QMessageBox.information(
+                self._view, "Chọn tài khoản", "Chọn một dòng trong bảng."
+            )
+            return
+        row = self._tai_khoan.get_by_id(uid)
+        if not row:
+            self.refresh_tai_khoan()
+            return
+        dlg = ChangePasswordDialog(row["ten_dang_nhap"], parent=self._view)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        try:
+            self._tai_khoan.set_password(uid, dlg.password())
+        except ValueError as e:
+            QMessageBox.warning(self._view, "Mật khẩu", str(e))
+            return
+        QMessageBox.information(self._view, "Đã xong", "Đã đổi mật khẩu.")
+
+    def _on_tai_khoan_xoa(self) -> None:
+        if not self._session.is_admin():
+            return
+        uid = self._selected_tai_khoan_id()
+        if uid is None:
+            QMessageBox.information(
+                self._view, "Chọn tài khoản", "Chọn một dòng trong bảng."
+            )
+            return
+        if uid == self._session.user_id:
+            QMessageBox.warning(
+                self._view, "Không xóa được", "Không thể xóa tài khoản đang đăng nhập."
+            )
+            return
+        row = self._tai_khoan.get_by_id(uid)
+        if not row:
+            self.refresh_tai_khoan()
+            return
+        if row["vai_tro"] == "admin" and self._tai_khoan.count_admins() <= 1:
+            QMessageBox.warning(
+                self._view,
+                "Không xóa được",
+                "Phải còn ít nhất một tài khoản quản trị.",
+            )
+            return
+        if (
+            QMessageBox.question(
+                self._view,
+                "Xác nhận",
+                f"Xóa tài khoản «{row['ten_dang_nhap']}»?",
+            )
+            != QMessageBox.StandardButton.Yes
+        ):
+            return
+        try:
+            self._tai_khoan.delete(uid)
+        except sqlite3.Error as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        self.refresh_tai_khoan()
 
     def _on_dang_xuat(self) -> None:
         if (

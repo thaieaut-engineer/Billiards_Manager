@@ -22,7 +22,7 @@
       </property>
       <widget class="QWidget" name="tabBan">
        <attribute name="title">
-        <string>Bàn &amp; giá giờ</string>
+        <string>Quản lý — Bàn</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_ban">
         <item>
@@ -149,7 +149,7 @@
       </widget>
       <widget class="QWidget" name="tabNhanVien">
        <attribute name="title">
-        <string>Nhân viên</string>
+        <string>Quản lý — Nhân viên</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_nv">
         <item>
@@ -252,7 +252,7 @@
       </widget>
       <widget class="QWidget" name="tabPhienChoi">
        <attribute name="title">
-        <string>Phiên chơi &amp; tính tiền</string>
+        <string>Vận hành — Phiên chơi</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_phien">
         <item>
@@ -487,7 +487,7 @@
       </widget>
       <widget class="QWidget" name="tabDichVu">
        <attribute name="title">
-        <string>Dịch vụ</string>
+        <string>Quản lý — Dịch vụ</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_dv">
         <item>
@@ -568,9 +568,68 @@
         </item>
        </layout>
       </widget>
+      <widget class="QWidget" name="tabTaiKhoan">
+       <attribute name="title">
+        <string>Quản lý — Tài khoản</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_tk">
+        <item>
+         <widget class="QLabel" name="labelTaiKhoanHint">
+          <property name="text">
+           <string>Danh sách tài khoản đăng nhập. Chỉ quản trị viên quản lý.</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QTableWidget" name="tableTaiKhoan">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_tk_btns">
+          <item>
+           <widget class="QPushButton" name="btnTaiKhoanLamMoi">
+            <property name="text">
+             <string>Làm mới</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnTaiKhoanThem">
+            <property name="text">
+             <string>Thêm tài khoản</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnTaiKhoanDoiMatKhau">
+            <property name="text">
+             <string>Đổi mật khẩu</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnTaiKhoanXoa">
+            <property name="text">
+             <string>Xóa</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
       <widget class="QWidget" name="tabHoaDon">
        <attribute name="title">
-        <string>Hóa đơn</string>
+        <string>Vận hành — Hóa đơn</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_hd">
         <item>
@@ -605,7 +664,7 @@
       </widget>
       <widget class="QWidget" name="tabDoanhThu">
        <attribute name="title">
-        <string>Doanh thu</string>
+        <string>Báo cáo — Doanh thu</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_dt">
         <item>
