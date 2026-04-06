@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -25,6 +28,7 @@ class LoginDialog(QDialog):
     def __init__(self, database: Database, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Đăng nhập — Quản lý quán Bi-a")
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
         self._db = database
         self._conn = database.connect()
         self._model = TaiKhoanModel(self._conn)
@@ -32,13 +36,32 @@ class LoginDialog(QDialog):
 
         self._edit_user = QLineEdit()
         self._edit_user.setPlaceholderText("Tên đăng nhập")
+        self._edit_user.setMinimumWidth(260)
         self._edit_pw = QLineEdit()
         self._edit_pw.setEchoMode(QLineEdit.EchoMode.Password)
         self._edit_pw.setPlaceholderText("Mật khẩu")
+        self._edit_pw.returnPressed.connect(self._try_login)
+
+        title = QLabel("Đăng nhập")
+        title.setObjectName("dlgTitle")
+        subtitle = QLabel("Vui lòng đăng nhập để tiếp tục.")
+        subtitle.setObjectName("dlgSubtitle")
+        subtitle.setWordWrap(True)
+
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setFrameShadow(QFrame.Shadow.Sunken)
 
         form = QFormLayout()
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft)
+        form.setFormAlignment(Qt.AlignmentFlag.AlignTop)
+        form.setHorizontalSpacing(14)
+        form.setVerticalSpacing(10)
         form.addRow("Tài khoản", self._edit_user)
         form.addRow("Mật khẩu", self._edit_pw)
+
+        self._chk_show_pw = QCheckBox("Hiện mật khẩu")
+        self._chk_show_pw.toggled.connect(self._toggle_password_visible)
 
         btn_row = QHBoxLayout()
         self._btn_register = QPushButton("Đăng ký tài khoản")
@@ -58,10 +81,37 @@ class LoginDialog(QDialog):
         buttons.rejected.connect(self.reject)
 
         lay = QVBoxLayout(self)
-        lay.addWidget(QLabel("Vui lòng đăng nhập để tiếp tục."))
+        lay.setContentsMargins(18, 18, 18, 14)
+        lay.setSpacing(12)
+        lay.addWidget(title)
+        lay.addWidget(subtitle)
+        lay.addWidget(sep)
         lay.addLayout(form)
+        lay.addWidget(self._chk_show_pw)
         lay.addLayout(btn_row)
         lay.addWidget(buttons)
+
+        self.setStyleSheet(
+            """
+            QDialog { background: #ffffff; }
+            QLabel#dlgTitle { font-size: 18px; font-weight: 700; color: #0f172a; }
+            QLabel#dlgSubtitle { color: #475569; }
+            QLineEdit {
+                padding: 8px 10px;
+                border: 1px solid #cbd5e1;
+                border-radius: 8px;
+            }
+            QLineEdit:focus { border: 1px solid #3b82f6; }
+            QPushButton {
+                padding: 8px 12px;
+                border-radius: 8px;
+            }
+            QPushButton:hover { background: #f1f5f9; }
+            QDialogButtonBox QPushButton {
+                min-width: 96px;
+            }
+            """
+        )
 
     def _open_register(self) -> None:
         if self._model.count() > 0:
@@ -80,6 +130,11 @@ class LoginDialog(QDialog):
                 "Đã tạo tài khoản",
                 "Đã đăng ký quản trị viên. Vui lòng đăng nhập.",
             )
+
+    def _toggle_password_visible(self, checked: bool) -> None:
+        self._edit_pw.setEchoMode(
+            QLineEdit.EchoMode.Normal if checked else QLineEdit.EchoMode.Password
+        )
 
     def _try_login(self) -> None:
         user = self._edit_user.text().strip()
