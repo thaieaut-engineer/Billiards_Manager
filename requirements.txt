@@ -1,0 +1,3 @@
+# PyQt6 6.11+ đôi khi lỗi "DLL load failed" trên Windows + Anaconda; 6.6.x ổn định hơn.
+PyQt6==6.6.1
+PyQt6-Qt6==6.6.1

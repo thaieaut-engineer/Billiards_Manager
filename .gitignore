@@ -1,0 +1,40 @@
+# Virtualenv
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Biến môi trường (nếu sau này có)
+.env
+.env.*
+
+# SQLite dữ liệu chạy app — không đẩy DB thật lên Git
+data/*.db
+data/*.sqlite
+data/*.sqlite3

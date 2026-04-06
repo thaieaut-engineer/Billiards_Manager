@@ -1,0 +1,679 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1024</width>
+    <height>720</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Quản lý quán Bi-a</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout_main">
+    <item>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
+      <widget class="QWidget" name="tabBan">
+       <attribute name="title">
+        <string>Bàn &amp; giá giờ</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_ban">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_locBan">
+          <item>
+           <widget class="QLabel" name="label_loc_loai_ban">
+            <property name="text">
+             <string>Lọc theo loại</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboLocLoaiBan"/>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_locBan">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QTableWidget" name="tableBan">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QFormLayout" name="formLayout_ban">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_ten_ban">
+            <property name="text">
+             <string>Tên bàn</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="editTenBan"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_loai_ban">
+            <property name="text">
+             <string>Loại bàn</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QComboBox" name="comboLoaiBan">
+            <property name="editable">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_gia_gio">
+            <property name="text">
+             <string>Giá / giờ (VNĐ)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QDoubleSpinBox" name="spinGiaGio">
+            <property name="decimals">
+             <number>0</number>
+            </property>
+            <property name="maximum">
+             <double>100000000.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>1000.000000000000000</double>
+            </property>
+            <property name="value">
+             <double>50000.000000000000000</double>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_ban_btns">
+          <item>
+           <widget class="QPushButton" name="btnBanThem">
+            <property name="text">
+             <string>Thêm</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnBanSua">
+            <property name="text">
+             <string>Cập nhật</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnBanXoa">
+            <property name="text">
+             <string>Xóa</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnBanLamMoi">
+            <property name="text">
+             <string>Làm mới</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tabNhanVien">
+       <attribute name="title">
+        <string>Nhân viên</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_nv">
+        <item>
+         <widget class="QTableWidget" name="tableNhanVien">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QFormLayout" name="formLayout_nv">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_nv_ten">
+            <property name="text">
+             <string>Họ tên</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="editNVTen"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_nv_sdt">
+            <property name="text">
+             <string>Số điện thoại</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="editNVSDT"/>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_nv_luong">
+            <property name="text">
+             <string>Lương (VNĐ/tháng)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QDoubleSpinBox" name="spinNVLuong">
+            <property name="decimals">
+             <number>0</number>
+            </property>
+            <property name="maximum">
+             <double>100000000.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>500000.000000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_nv_chuc">
+            <property name="text">
+             <string>Chức vụ</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLineEdit" name="editNVChucVu"/>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_nv_btns">
+          <item>
+           <widget class="QPushButton" name="btnNVThem">
+            <property name="text">
+             <string>Thêm</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnNVSua">
+            <property name="text">
+             <string>Cập nhật</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnNVXoa">
+            <property name="text">
+             <string>Xóa</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnNVLamMoi">
+            <property name="text">
+             <string>Làm mới</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tabPhienChoi">
+       <attribute name="title">
+        <string>Phiên chơi &amp; tính tiền</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_phien">
+        <item>
+         <widget class="QLabel" name="label_phien_hint">
+          <property name="text">
+           <string>Bắt đầu phiên trên bàn trống; thêm dịch vụ trong lúc chơi; kết thúc để lập hóa đơn theo thời gian × giá giờ.</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_bat_dau">
+          <item>
+           <widget class="QLabel" name="label_combo_ban">
+            <property name="text">
+             <string>Bàn trống</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboBanTrong"/>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_combo_nv">
+            <property name="text">
+             <string>Nhân viên</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboNVPhien"/>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnBatDauPhien">
+            <property name="text">
+             <string>Bắt đầu phiên</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_locPhien">
+          <item>
+           <widget class="QLabel" name="label_loc_loai_phien">
+            <property name="text">
+             <string>Lọc theo loại</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboLocPhien"/>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_locPhien">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QLabel" name="labelPhienSoDoHint">
+          <property name="text">
+           <string>Sơ đồ bàn: bấm bàn trống để chọn mở phiên; bấm bàn đang chơi để chọn phiên trong bảng dưới.</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QScrollArea" name="scrollAreaPhienBan">
+          <property name="widgetResizable">
+           <bool>true</bool>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::StyledPanel</enum>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>200</height>
+           </size>
+          </property>
+          <widget class="QWidget" name="widgetPhienBanTiles">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>980</width>
+             <height>360</height>
+            </rect>
+           </property>
+           <layout class="QGridLayout" name="gridLayoutPhienBanTiles">
+            <property name="leftMargin">
+             <number>8</number>
+            </property>
+            <property name="topMargin">
+             <number>8</number>
+            </property>
+            <property name="rightMargin">
+             <number>8</number>
+            </property>
+            <property name="bottomMargin">
+             <number>8</number>
+            </property>
+            <property name="spacing">
+             <number>12</number>
+            </property>
+           </layout>
+          </widget>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_phien_dang_choi">
+          <property name="text">
+           <string>Phiên đang chơi</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QTableWidget" name="tablePhienDangChoi">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_them_dv">
+          <item>
+           <widget class="QLabel" name="label_dv_combo">
+            <property name="text">
+             <string>Dịch vụ</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboDichVuPhien"/>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_sl">
+            <property name="text">
+             <string>Số lượng</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QSpinBox" name="spinSoLuongDV">
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="maximum">
+             <number>999</number>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnThemDVPhien">
+            <property name="text">
+             <string>Thêm vào phiên</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QTableWidget" name="tableDichVuTamPhien">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_ket_thuc">
+          <item>
+           <widget class="QLabel" name="label_tong_tam">
+            <property name="text">
+             <string>Tạm tính dịch vụ:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="labelTongTamDV">
+            <property name="text">
+             <string>0</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_phien">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnXoaDongDV">
+            <property name="text">
+             <string>Xóa dòng dịch vụ</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnKetThucPhien">
+            <property name="text">
+             <string>Kết thúc &amp; lập hóa đơn</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tabDichVu">
+       <attribute name="title">
+        <string>Dịch vụ</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_dv">
+        <item>
+         <widget class="QTableWidget" name="tableDichVu">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QFormLayout" name="formLayout_dv">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_dv_ten">
+            <property name="text">
+             <string>Tên</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="editDVTen"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_dv_gia">
+            <property name="text">
+             <string>Giá (VNĐ)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QDoubleSpinBox" name="spinDVGia">
+            <property name="decimals">
+             <number>0</number>
+            </property>
+            <property name="maximum">
+             <double>10000000.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>1000.000000000000000</double>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_dv_btns">
+          <item>
+           <widget class="QPushButton" name="btnDVThem">
+            <property name="text">
+             <string>Thêm</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnDVSua">
+            <property name="text">
+             <string>Cập nhật</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnDVXoa">
+            <property name="text">
+             <string>Xóa</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnDVLamMoi">
+            <property name="text">
+             <string>Làm mới</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tabHoaDon">
+       <attribute name="title">
+        <string>Hóa đơn</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_hd">
+        <item>
+         <widget class="QTableWidget" name="tableHoaDon">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_hd">
+          <item>
+           <widget class="QPushButton" name="btnHoaDonLamMoi">
+            <property name="text">
+             <string>Làm mới danh sách</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnXuatHoaDon">
+            <property name="text">
+             <string>Xuất hóa đơn (TXT)…</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tabDoanhThu">
+       <attribute name="title">
+        <string>Doanh thu</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_dt">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_dt">
+          <item>
+           <widget class="QLabel" name="label_dt_tu">
+            <property name="text">
+             <string>Từ ngày</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QDateEdit" name="dateTu">
+            <property name="calendarPopup">
+             <bool>true</bool>
+            </property>
+            <property name="displayFormat">
+             <string>yyyy-MM-dd</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_dt_den">
+            <property name="text">
+             <string>Đến ngày</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QDateEdit" name="dateDen">
+            <property name="calendarPopup">
+             <bool>true</bool>
+            </property>
+            <property name="displayFormat">
+             <string>yyyy-MM-dd</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnLocDoanhThu">
+            <property name="text">
+             <string>Lọc</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QLabel" name="labelTongDoanhThu">
+          <property name="text">
+           <string>Tổng doanh thu: 0 VNĐ</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QTableWidget" name="tableDoanhThu">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
