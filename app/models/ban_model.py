@@ -9,6 +9,25 @@ class BanModel:
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
 
+    def _ten_key(self, ten_ban: str) -> str:
+        return ten_ban.strip().lower()
+
+    def exists_ten(self, ten_ban: str, exclude_id: int | None = None) -> bool:
+        key = self._ten_key(ten_ban)
+        if not key:
+            return False
+        if exclude_id is None:
+            cur = self._conn.execute(
+                "SELECT 1 FROM ban WHERE LOWER(TRIM(ten_ban)) = ? LIMIT 1",
+                (key,),
+            )
+        else:
+            cur = self._conn.execute(
+                "SELECT 1 FROM ban WHERE LOWER(TRIM(ten_ban)) = ? AND id != ? LIMIT 1",
+                (key, int(exclude_id)),
+            )
+        return cur.fetchone() is not None
+
     def list_all(self, loc_loai: str | None = None) -> list[sqlite3.Row]:
         """loc_loai: None = tất cả; '' = chỉ bàn chưa gán loại; chuỗi khác = khớp loại."""
         base = "SELECT id, ten_ban, loai_ban, trang_thai, gia_gio FROM ban "
@@ -47,17 +66,23 @@ class BanModel:
         return cur.fetchone()
 
     def create(self, ten_ban: str, gia_gio: float, loai_ban: str = "") -> int:
+        ten = ten_ban.strip()
+        if self.exists_ten(ten):
+            raise ValueError("Tên bàn đã tồn tại.")
         cur = self._conn.execute(
             "INSERT INTO ban (ten_ban, trang_thai, gia_gio, loai_ban) VALUES (?, 'trong', ?, ?)",
-            (ten_ban.strip(), float(gia_gio), loai_ban.strip()),
+            (ten, float(gia_gio), loai_ban.strip()),
         )
         self._conn.commit()
         return int(cur.lastrowid)
 
     def update(self, ban_id: int, ten_ban: str, gia_gio: float, loai_ban: str = "") -> None:
+        ten = ten_ban.strip()
+        if self.exists_ten(ten, exclude_id=int(ban_id)):
+            raise ValueError("Tên bàn đã tồn tại.")
         self._conn.execute(
             "UPDATE ban SET ten_ban = ?, gia_gio = ?, loai_ban = ? WHERE id = ?",
-            (ten_ban.strip(), float(gia_gio), loai_ban.strip(), ban_id),
+            (ten, float(gia_gio), loai_ban.strip(), ban_id),
         )
         self._conn.commit()
 

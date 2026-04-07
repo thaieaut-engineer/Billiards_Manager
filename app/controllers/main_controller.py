@@ -478,6 +478,9 @@ class MainController:
         loai = self._view.comboLoaiBan.currentText().strip()
         try:
             self._ban.create(ten, self._view.spinGiaGio.value(), loai)
+        except ValueError as e:
+            QMessageBox.warning(self._view, "Trùng tên", str(e))
+            return
         except sqlite3.Error as e:
             QMessageBox.critical(self._view, "Lỗi", str(e))
             return
@@ -496,6 +499,9 @@ class MainController:
         loai = self._view.comboLoaiBan.currentText().strip()
         try:
             self._ban.update(bid, ten, self._view.spinGiaGio.value(), loai)
+        except ValueError as e:
+            QMessageBox.warning(self._view, "Trùng tên", str(e))
+            return
         except sqlite3.Error as e:
             QMessageBox.critical(self._view, "Lỗi", str(e))
             return
