@@ -268,14 +268,24 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_bat_dau">
           <item>
-           <widget class="QLabel" name="label_combo_ban">
+           <widget class="QLabel" name="label_ban_da_chon">
             <property name="text">
-             <string>Bàn trống</string>
+             <string>Bàn đã chọn</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QComboBox" name="comboBanTrong"/>
+           <widget class="QLabel" name="labelBanDaChonValue">
+            <property name="text">
+             <string>(chưa chọn)</string>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>220</width>
+              <height>0</height>
+             </size>
+            </property>
+           </widget>
           </item>
           <item>
            <widget class="QLabel" name="label_combo_nv">

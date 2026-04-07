@@ -63,6 +63,7 @@ class MainController:
         self._tam_dich_vu_theo_phien: dict[int, list[_TamDichVu]] = {}
         self._phien_dang_chon: int | None = None
         self._phien_ban_tiles: dict[int, BanTile] = {}
+        self._ban_trong_dang_chon: int | None = None
         self._filter_loai: str | None = None  # None=tất cả; ''=chưa gán loại
         self._on_logout: Callable[[], None] | None = None
 
@@ -160,7 +161,6 @@ class MainController:
         v.tableNhanVien.itemSelectionChanged.connect(self._on_nv_select)
 
         v.btnBatDauPhien.clicked.connect(self._on_bat_dau_phien)
-        v.comboBanTrong.currentIndexChanged.connect(self._on_combo_ban_trong_changed)
         v.tablePhienDangChoi.itemSelectionChanged.connect(self._on_phien_select)
         v.btnThemDVPhien.clicked.connect(self._on_them_dv_phien)
         v.btnXoaDongDV.clicked.connect(self._on_xoa_dong_dv)
@@ -427,21 +427,29 @@ class MainController:
     def refresh_ban(self) -> None:
         self._populate_filter_loai_combos()
         self._refresh_ban_table()
-        self._fill_combo_ban_trong()
         self._view.tableBan.clearSelection()
         self._view.editTenBan.clear()
         self._view.comboLoaiBan.setEditText("")
         self._view.spinGiaGio.setValue(50_000)
 
-    def _fill_combo_ban_trong(self) -> None:
-        c = self._view.comboBanTrong
-        c.clear()
-        for r in self._ban.list_trong():
-            loai = self._loai_ban_display(r)
-            label = f"{r['ten_ban']}"
-            if loai:
-                label = f"{label} ({loai})"
-            c.addItem(f"{label} (ID {r['id']})", r["id"])
+    def _set_ban_trong_dang_chon(self, ban_id: int | None) -> None:
+        self._ban_trong_dang_chon = ban_id
+        if ban_id is None:
+            self._view.labelBanDaChonValue.setText("(chưa chọn)")
+            self._sync_phien_ban_tile_highlight()
+            return
+        r = self._ban.get(int(ban_id))
+        if not r:
+            self._view.labelBanDaChonValue.setText("(chưa chọn)")
+            self._ban_trong_dang_chon = None
+            self._sync_phien_ban_tile_highlight()
+            return
+        loai = self._loai_ban_display(r)
+        label = f"{r['ten_ban']}"
+        if loai:
+            label = f"{label} ({loai})"
+        self._view.labelBanDaChonValue.setText(f"{label} — {_money(float(r['gia_gio']))}đ/giờ (ID {r['id']})")
+        self._sync_phien_ban_tile_highlight()
 
     def _selected_ban_id(self) -> int | None:
         rows = self._view.tableBan.selectionModel().selectedRows()
@@ -715,9 +723,8 @@ class MainController:
             if row:
                 highlight = int(row["ban_id"])
         if highlight is None:
-            c = self._view.comboBanTrong
-            if c.currentIndex() >= 0 and c.currentData() is not None:
-                highlight = int(c.currentData())
+            if self._ban_trong_dang_chon is not None:
+                highlight = int(self._ban_trong_dang_chon)
         for bid, w in self._phien_ban_tiles.items():
             w.set_selected(bid == highlight)
 
@@ -730,21 +737,11 @@ class MainController:
                 if int(row["ban_id"]) == ban_id:
                     self._select_phien_row(int(row["id"]))
                     return
+        # Bàn trống → chọn để bắt đầu phiên (không dùng combobox).
         self._view.tablePhienDangChoi.clearSelection()
-        c = self._view.comboBanTrong
-        for i in range(c.count()):
-            if c.itemData(i) == ban_id:
-                c.setCurrentIndex(i)
-                return
-
-    def _on_combo_ban_trong_changed(self, index: int) -> None:
-        if index < 0:
-            return
-        if self._selected_phien_id() is None:
-            self._sync_phien_ban_tile_highlight()
+        self._set_ban_trong_dang_chon(ban_id)
 
     def refresh_phien_choi_ui(self) -> None:
-        self._fill_combo_ban_trong()
         self._fill_combo_nv()
         rows = self._phien.list_active()
         t = self._view.tablePhienDangChoi
@@ -768,6 +765,11 @@ class MainController:
             self._phien_dang_chon = None
         self._render_tam_dich_vu_table()
         self._rebuild_phien_ban_tiles()
+        # Nếu bàn đã chọn không còn trống, bỏ chọn.
+        if self._ban_trong_dang_chon is not None:
+            r = self._ban.get(int(self._ban_trong_dang_chon))
+            if not r or r["trang_thai"] == "dang_choi":
+                self._set_ban_trong_dang_chon(None)
 
     def _selected_phien_id(self) -> int | None:
         rows = self._view.tablePhienDangChoi.selectionModel().selectedRows()
@@ -782,11 +784,22 @@ class MainController:
         self._sync_phien_ban_tile_highlight()
 
     def _on_bat_dau_phien(self) -> None:
-        c = self._view.comboBanTrong
-        if c.currentIndex() < 0:
-            QMessageBox.warning(self._view, "Thiếu bàn", "Không có bàn trống.")
+        ban_id = self._ban_trong_dang_chon
+        if ban_id is None:
+            QMessageBox.information(
+                self._view,
+                "Chọn bàn",
+                "Bấm chọn một bàn trống trên sơ đồ để bắt đầu phiên.",
+            )
             return
-        ban_id = c.currentData()
+        r = self._ban.get(int(ban_id))
+        if not r:
+            self._set_ban_trong_dang_chon(None)
+            return
+        if r["trang_thai"] == "dang_choi":
+            QMessageBox.warning(self._view, "Bàn đang chơi", "Bàn này đang có phiên chơi.")
+            self._set_ban_trong_dang_chon(None)
+            return
         nv_id = self._view.comboNVPhien.currentData()
         try:
             pid = self._phien.create(int(ban_id), int(nv_id) if nv_id is not None else None)
@@ -795,6 +808,7 @@ class MainController:
         except sqlite3.Error as e:
             QMessageBox.critical(self._view, "Lỗi", str(e))
             return
+        self._set_ban_trong_dang_chon(None)
         self.refresh_ban()
         self.refresh_phien_choi_ui()
         self._select_phien_row(pid)
