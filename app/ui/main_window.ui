@@ -84,30 +84,69 @@
           <item row="1" column="1">
            <widget class="QComboBox" name="comboLoaiBan">
             <property name="editable">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
            </widget>
           </item>
           <item row="2" column="0">
            <widget class="QLabel" name="label_gia_gio">
             <property name="text">
-             <string>Giá / giờ (VNĐ)</string>
+             <string>Giá / giờ riêng (VNĐ)</string>
             </property>
            </widget>
           </item>
           <item row="2" column="1">
-           <widget class="QDoubleSpinBox" name="spinGiaGio">
-            <property name="decimals">
-             <number>0</number>
+           <layout class="QHBoxLayout" name="horizontalLayout_gia_rieng">
+            <item>
+             <widget class="QCheckBox" name="chkGiaRieng">
+              <property name="text">
+               <string>Dùng giá riêng</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QDoubleSpinBox" name="spinGiaGio">
+              <property name="decimals">
+               <number>0</number>
+              </property>
+              <property name="maximum">
+               <double>100000000.000000000000000</double>
+              </property>
+              <property name="singleStep">
+               <double>1000.000000000000000</double>
+              </property>
+              <property name="value">
+               <double>50000.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_gia_mac_dinh">
+            <property name="text">
+             <string>Giá mặc định loại</string>
             </property>
-            <property name="maximum">
-             <double>100000000.000000000000000</double>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLabel" name="labelGiaMacDinhValue">
+            <property name="text">
+             <string>(chưa chọn)</string>
             </property>
-            <property name="singleStep">
-             <double>1000.000000000000000</double>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="label_sale_percent">
+            <property name="text">
+             <string>Sale (%)</string>
             </property>
-            <property name="value">
-             <double>50000.000000000000000</double>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QLabel" name="labelSalePercentValue">
+            <property name="text">
+             <string>0</string>
             </property>
            </widget>
           </item>
@@ -147,6 +186,109 @@
         </item>
        </layout>
       </widget>
+     <widget class="QWidget" name="tabLoaiBan">
+      <attribute name="title">
+       <string>Quản lý — Loại bàn</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_loai_ban">
+       <item>
+        <widget class="QTableWidget" name="tableLoaiBan">
+         <property name="alternatingRowColors">
+          <bool>true</bool>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="formLayout_loai_ban">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_loai_ban_ten">
+           <property name="text">
+            <string>Tên loại</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="editLoaiBanTen"/>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_loai_ban_gia">
+           <property name="text">
+            <string>Giá mặc định (VNĐ/giờ)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QDoubleSpinBox" name="spinLoaiBanGia">
+           <property name="decimals">
+            <number>0</number>
+           </property>
+           <property name="maximum">
+            <double>100000000.000000000000000</double>
+           </property>
+           <property name="singleStep">
+            <double>1000.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_loai_ban_sale">
+           <property name="text">
+            <string>Sale (%)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QDoubleSpinBox" name="spinLoaiBanSale">
+           <property name="decimals">
+            <number>0</number>
+           </property>
+           <property name="maximum">
+            <double>100.000000000000000</double>
+           </property>
+           <property name="singleStep">
+            <double>1.000000000000000</double>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_loai_ban_btns">
+         <item>
+          <widget class="QPushButton" name="btnLoaiBanThem">
+           <property name="text">
+            <string>Thêm</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btnLoaiBanSua">
+           <property name="text">
+            <string>Cập nhật</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btnLoaiBanXoa">
+           <property name="text">
+            <string>Xóa</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btnLoaiBanLamMoi">
+           <property name="text">
+            <string>Làm mới</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
       <widget class="QWidget" name="tabNhanVien">
        <attribute name="title">
         <string>Quản lý — Nhân viên</string>

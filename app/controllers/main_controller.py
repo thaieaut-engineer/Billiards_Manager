@@ -24,6 +24,7 @@ from app.models import (
     BanModel,
     DichVuModel,
     HoaDonModel,
+    LoaiBanModel,
     NhanVienModel,
     PhienChoiModel,
     TaiKhoanModel,
@@ -55,6 +56,7 @@ class MainController:
         self._conn = database.connect()
         self._session = session
         self._ban = BanModel(self._conn)
+        self._loai_ban = LoaiBanModel(self._conn)
         self._nv = NhanVienModel(self._conn)
         self._dv = DichVuModel(self._conn)
         self._phien = PhienChoiModel(self._conn)
@@ -76,6 +78,7 @@ class MainController:
         self._wire_signals()
         self._apply_permissions()
         self._setup_session_status()
+        self.refresh_loai_ban()
         self.refresh_ban()
         self.refresh_nhan_vien()
         self.refresh_dich_vu()
@@ -140,6 +143,11 @@ class MainController:
         )
         t.horizontalHeader().setStretchLastSection(True)
 
+        t = self._view.tableLoaiBan
+        t.setColumnCount(4)
+        t.setHorizontalHeaderLabels(["ID", "Tên loại", "Giá mặc định", "Sale (%)"])
+        t.horizontalHeader().setStretchLastSection(True)
+
     def _wire_signals(self) -> None:
         v = self._view
         v.btnBanThem.clicked.connect(self._on_ban_them)
@@ -147,6 +155,8 @@ class MainController:
         v.btnBanXoa.clicked.connect(self._on_ban_xoa)
         v.btnBanLamMoi.clicked.connect(self.refresh_ban)
         v.tableBan.itemSelectionChanged.connect(self._on_ban_select)
+        v.comboLoaiBan.currentIndexChanged.connect(self._on_combo_loai_ban_changed)
+        v.chkGiaRieng.toggled.connect(self._on_chk_gia_rieng_toggled)
         v.comboLocLoaiBan.currentIndexChanged.connect(
             lambda _i: self._on_filter_loai_changed(v.comboLocLoaiBan)
         )
@@ -185,18 +195,49 @@ class MainController:
         v.btnTaiKhoanDoiMatKhau.clicked.connect(self._on_tai_khoan_doi_mat_khau)
         v.btnTaiKhoanXoa.clicked.connect(self._on_tai_khoan_xoa)
 
+        v.btnLoaiBanLamMoi.clicked.connect(self.refresh_loai_ban)
+        v.btnLoaiBanThem.clicked.connect(self._on_loai_ban_them)
+        v.btnLoaiBanSua.clicked.connect(self._on_loai_ban_sua)
+        v.btnLoaiBanXoa.clicked.connect(self._on_loai_ban_xoa)
+        v.tableLoaiBan.itemSelectionChanged.connect(self._on_loai_ban_select)
+
     def _setup_doanh_thu_dates(self) -> None:
         today = date.today()
         self._view.dateTu.setDate(today)
         self._view.dateDen.setDate(today)
 
     def _setup_loai_ban_combo(self) -> None:
+        self._reload_combo_loai_ban()
+        self._on_chk_gia_rieng_toggled(self._view.chkGiaRieng.isChecked())
+
+    def _reload_combo_loai_ban(self) -> None:
         c = self._view.comboLoaiBan
+        c.blockSignals(True)
         c.clear()
-        for s in ("Phăng", "Lỗ", "Băng"):
-            c.addItem(s)
-        c.setCurrentIndex(-1)
-        c.setEditText("")
+        c.addItem("(Chưa gán loại)", None)
+        for r in self._loai_ban.list_all():
+            c.addItem(r["ten"], int(r["id"]))
+        c.setCurrentIndex(0)
+        c.blockSignals(False)
+        self._update_loai_ban_info_labels()
+
+    def _selected_loai_ban_id_from_combo(self) -> int | None:
+        d = self._view.comboLoaiBan.currentData()
+        return int(d) if d is not None else None
+
+    def _update_loai_ban_info_labels(self) -> None:
+        loai_id = self._selected_loai_ban_id_from_combo()
+        if loai_id is None:
+            self._view.labelGiaMacDinhValue.setText("(chưa chọn)")
+            self._view.labelSalePercentValue.setText("0")
+            return
+        r = self._loai_ban.get(loai_id)
+        if not r:
+            self._view.labelGiaMacDinhValue.setText("(chưa chọn)")
+            self._view.labelSalePercentValue.setText("0")
+            return
+        self._view.labelGiaMacDinhValue.setText(f"{_money(float(r['gia_gio_mac_dinh']))} đ/giờ")
+        self._view.labelSalePercentValue.setText(f"{float(r['sale_percent']):.0f}")
 
     def _setup_session_status(self) -> None:
         role = "Quản trị" if self._session.is_admin() else "Nhân viên"
@@ -209,6 +250,7 @@ class MainController:
         tb = self._view.tabWidget.tabBar()
         for name, visible in (
             ("tabNhanVien", not staff),
+            ("tabLoaiBan", not staff),
             ("tabTaiKhoan", admin),
             ("tabDoanhThu", not staff),
         ):
@@ -221,6 +263,7 @@ class MainController:
         self._view.editTenBan.setReadOnly(staff)
         self._view.comboLoaiBan.setEnabled(not staff)
         self._view.spinGiaGio.setReadOnly(staff)
+        self._view.chkGiaRieng.setEnabled(not staff)
         self._view.btnNVThem.setEnabled(not staff)
         self._view.btnNVSua.setEnabled(not staff)
         self._view.btnNVXoa.setEnabled(not staff)
@@ -237,6 +280,18 @@ class MainController:
             self._view.btnTaiKhoanXoa,
         ):
             w.setEnabled(admin)
+
+        for w in (
+            self._view.btnLoaiBanLamMoi,
+            self._view.btnLoaiBanThem,
+            self._view.btnLoaiBanSua,
+            self._view.btnLoaiBanXoa,
+            self._view.tableLoaiBan,
+            self._view.editLoaiBanTen,
+            self._view.spinLoaiBanGia,
+            self._view.spinLoaiBanSale,
+        ):
+            w.setEnabled(not staff)
 
     def _on_tao_tai_khoan(self) -> None:
         if not self._session.is_admin():
@@ -425,12 +480,112 @@ class MainController:
 
     # --- Bàn ---
     def refresh_ban(self) -> None:
+        self._reload_combo_loai_ban()
         self._populate_filter_loai_combos()
         self._refresh_ban_table()
         self._view.tableBan.clearSelection()
         self._view.editTenBan.clear()
-        self._view.comboLoaiBan.setEditText("")
+        self._view.comboLoaiBan.setCurrentIndex(0)
+        self._view.chkGiaRieng.setChecked(False)
         self._view.spinGiaGio.setValue(50_000)
+        self._update_loai_ban_info_labels()
+
+    # --- Loại bàn ---
+    def refresh_loai_ban(self) -> None:
+        rows = self._loai_ban.list_all()
+        t = self._view.tableLoaiBan
+        t.setRowCount(len(rows))
+        for i, r in enumerate(rows):
+            t.setItem(i, 0, QTableWidgetItem(str(r["id"])))
+            t.setItem(i, 1, QTableWidgetItem(r["ten"] or ""))
+            t.setItem(i, 2, QTableWidgetItem(_money(float(r["gia_gio_mac_dinh"] or 0))))
+            t.setItem(i, 3, QTableWidgetItem(f"{float(r['sale_percent'] or 0):.0f}"))
+        t.clearSelection()
+        self._view.editLoaiBanTen.clear()
+        self._view.spinLoaiBanGia.setValue(0)
+        self._view.spinLoaiBanSale.setValue(0)
+        # refresh combo + filters since type list may change
+        self._reload_combo_loai_ban()
+        self._populate_filter_loai_combos()
+
+    def _selected_loai_ban_table_id(self) -> int | None:
+        rows = self._view.tableLoaiBan.selectionModel().selectedRows()
+        if not rows:
+            return None
+        it = self._view.tableLoaiBan.item(rows[0].row(), 0)
+        return int(it.text()) if it else None
+
+    def _on_loai_ban_select(self) -> None:
+        lid = self._selected_loai_ban_table_id()
+        if lid is None:
+            return
+        r = self._loai_ban.get(lid)
+        if not r:
+            return
+        self._view.editLoaiBanTen.setText(r["ten"] or "")
+        self._view.spinLoaiBanGia.setValue(float(r["gia_gio_mac_dinh"] or 0))
+        self._view.spinLoaiBanSale.setValue(float(r["sale_percent"] or 0))
+
+    def _on_loai_ban_them(self) -> None:
+        ten = self._view.editLoaiBanTen.text().strip()
+        try:
+            self._loai_ban.create(
+                ten,
+                self._view.spinLoaiBanGia.value(),
+                self._view.spinLoaiBanSale.value(),
+            )
+        except ValueError as e:
+            QMessageBox.warning(self._view, "Loại bàn", str(e))
+            return
+        except sqlite3.Error as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        self.refresh_loai_ban()
+
+    def _on_loai_ban_sua(self) -> None:
+        lid = self._selected_loai_ban_table_id()
+        if lid is None:
+            QMessageBox.information(self._view, "Chọn loại", "Chọn một dòng trong bảng.")
+            return
+        ten = self._view.editLoaiBanTen.text().strip()
+        try:
+            self._loai_ban.update(
+                lid,
+                ten,
+                self._view.spinLoaiBanGia.value(),
+                self._view.spinLoaiBanSale.value(),
+            )
+        except ValueError as e:
+            QMessageBox.warning(self._view, "Loại bàn", str(e))
+            return
+        except sqlite3.Error as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        self.refresh_loai_ban()
+
+    def _on_loai_ban_xoa(self) -> None:
+        lid = self._selected_loai_ban_table_id()
+        if lid is None:
+            QMessageBox.information(self._view, "Chọn loại", "Chọn một dòng trong bảng.")
+            return
+        r = self._loai_ban.get(lid)
+        if not r:
+            self.refresh_loai_ban()
+            return
+        if (
+            QMessageBox.question(self._view, "Xác nhận", f"Xóa loại bàn «{r['ten']}»?")
+            != QMessageBox.StandardButton.Yes
+        ):
+            return
+        try:
+            self._loai_ban.delete(lid)
+        except ValueError as e:
+            QMessageBox.warning(self._view, "Loại bàn", str(e))
+            return
+        except sqlite3.Error as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        self.refresh_loai_ban()
 
     def _set_ban_trong_dang_chon(self, ban_id: int | None) -> None:
         self._ban_trong_dang_chon = ban_id
@@ -467,17 +622,46 @@ class MainController:
         if not r:
             return
         self._view.editTenBan.setText(r["ten_ban"])
-        self._view.comboLoaiBan.setEditText(self._loai_ban_display(r))
-        self._view.spinGiaGio.setValue(float(r["gia_gio"]))
+        # Loại bàn theo ID (nếu có)
+        loai_id = r["loai_ban_id"]
+        if loai_id is None:
+            self._view.comboLoaiBan.setCurrentIndex(0)
+        else:
+            for i in range(self._view.comboLoaiBan.count()):
+                if self._view.comboLoaiBan.itemData(i) == int(loai_id):
+                    self._view.comboLoaiBan.setCurrentIndex(i)
+                    break
+        gia_rieng = r["gia_gio_rieng"]
+        self._view.chkGiaRieng.setChecked(gia_rieng is not None)
+        if gia_rieng is not None:
+            self._view.spinGiaGio.setValue(float(gia_rieng))
+        else:
+            # Hiển thị giá legacy để người dùng dễ nhập nếu muốn override
+            self._view.spinGiaGio.setValue(float(r["gia_gio_legacy"]))
+        self._update_loai_ban_info_labels()
 
     def _on_ban_them(self) -> None:
         ten = self._view.editTenBan.text().strip()
         if not ten:
             QMessageBox.warning(self._view, "Thiếu dữ liệu", "Nhập tên bàn.")
             return
-        loai = self._view.comboLoaiBan.currentText().strip()
+        loai_id = self._selected_loai_ban_id_from_combo()
+        gia_rieng = self._view.spinGiaGio.value() if self._view.chkGiaRieng.isChecked() else None
+        loai_text = self._view.comboLoaiBan.currentText().strip() if loai_id is not None else ""
+        # Legacy fallback: vẫn lưu ban.gia_gio để tương thích dữ liệu cũ
+        gia_luu = float(gia_rieng) if gia_rieng is not None else self._view.spinGiaGio.value()
+        if loai_id is not None and gia_rieng is None:
+            row = self._loai_ban.get(loai_id)
+            if row and float(row["gia_gio_mac_dinh"]) > 0:
+                gia_luu = float(row["gia_gio_mac_dinh"])
         try:
-            self._ban.create(ten, self._view.spinGiaGio.value(), loai)
+            self._ban.create(
+                ten,
+                gia_luu,
+                loai_text,
+                loai_ban_id=loai_id,
+                gia_gio_rieng=gia_rieng,
+            )
         except ValueError as e:
             QMessageBox.warning(self._view, "Trùng tên", str(e))
             return
@@ -496,9 +680,23 @@ class MainController:
         if not ten:
             QMessageBox.warning(self._view, "Thiếu dữ liệu", "Nhập tên bàn.")
             return
-        loai = self._view.comboLoaiBan.currentText().strip()
+        loai_id = self._selected_loai_ban_id_from_combo()
+        gia_rieng = self._view.spinGiaGio.value() if self._view.chkGiaRieng.isChecked() else None
+        loai_text = self._view.comboLoaiBan.currentText().strip() if loai_id is not None else ""
+        gia_luu = float(gia_rieng) if gia_rieng is not None else self._view.spinGiaGio.value()
+        if loai_id is not None and gia_rieng is None:
+            row = self._loai_ban.get(loai_id)
+            if row and float(row["gia_gio_mac_dinh"]) > 0:
+                gia_luu = float(row["gia_gio_mac_dinh"])
         try:
-            self._ban.update(bid, ten, self._view.spinGiaGio.value(), loai)
+            self._ban.update(
+                bid,
+                ten,
+                gia_luu,
+                loai_text,
+                loai_ban_id=loai_id,
+                gia_gio_rieng=gia_rieng,
+            )
         except ValueError as e:
             QMessageBox.warning(self._view, "Trùng tên", str(e))
             return
@@ -507,6 +705,12 @@ class MainController:
             return
         self.refresh_ban()
         self.refresh_phien_choi_ui()
+
+    def _on_combo_loai_ban_changed(self, _index: int) -> None:
+        self._update_loai_ban_info_labels()
+
+    def _on_chk_gia_rieng_toggled(self, checked: bool) -> None:
+        self._view.spinGiaGio.setEnabled(checked and not self._view.spinGiaGio.isReadOnly())
 
     def _on_ban_xoa(self) -> None:
         bid = self._selected_ban_id()
@@ -756,7 +960,8 @@ class MainController:
             t.setItem(i, 0, QTableWidgetItem(str(r["id"])))
             t.setItem(i, 1, QTableWidgetItem(r["ten_ban"]))
             t.setItem(i, 2, QTableWidgetItem(str(r["gio_bat_dau"])))
-            t.setItem(i, 3, QTableWidgetItem(_money(float(r["gia_gio"]))))
+            gia_ap = r["gia_gio_ap_dung"] if r["gia_gio_ap_dung"] is not None else r["gia_gio"]
+            t.setItem(i, 3, QTableWidgetItem(_money(float(gia_ap))))
             nv = ""
             if r["nhan_vien_id"]:
                 n = self._nv.get(int(r["nhan_vien_id"]))
@@ -807,8 +1012,15 @@ class MainController:
             self._set_ban_trong_dang_chon(None)
             return
         nv_id = self._view.comboNVPhien.currentData()
+        gia_ap = float(r["gia_gio"])
+        sale_ap = float(r["sale_percent"] or 0)
         try:
-            pid = self._phien.create(int(ban_id), int(nv_id) if nv_id is not None else None)
+            pid = self._phien.create(
+                int(ban_id),
+                int(nv_id) if nv_id is not None else None,
+                gia_ap,
+                sale_ap,
+            )
             self._ban.set_trang_thai(int(ban_id), "dang_choi")
             self._tam_dich_vu_theo_phien[pid] = []
         except sqlite3.Error as e:
@@ -898,8 +1110,10 @@ class MainController:
         if not r:
             return
         hours = self._gio_choi(str(r["gio_bat_dau"]))
-        gia_gio = float(r["gia_gio"])
-        tien_ban = round(hours * gia_gio, 0)
+        gia_ap = float(r["gia_gio_ap_dung"] if r["gia_gio_ap_dung"] is not None else r["gia_gio"])
+        sale_ap = float(r["sale_percent_ap_dung"] or 0)
+        tien_ban_goc = hours * gia_ap
+        tien_ban = round(tien_ban_goc * (1.0 - sale_ap / 100.0), 0)
         lines = self._tam_dich_vu_theo_phien.get(pid, [])
         tien_dv = sum(x.thanh_tien for x in lines)
         tong = tien_ban + tien_dv
@@ -929,7 +1143,7 @@ class MainController:
         QMessageBox.information(
             self._view,
             "Hoàn tất",
-            f"Đã lập hóa đơn.\nGiờ chơi: {hours:.2f} h\nTiền bàn: {_money(tien_ban)} đ\nDịch vụ: {_money(tien_dv)} đ\nTổng: {_money(tong)} đ",
+            f"Đã lập hóa đơn.\nGiờ chơi: {hours:.2f} h\nGiá áp dụng: {_money(gia_ap)} đ/giờ\nSale: {sale_ap:.0f}%\nTiền bàn: {_money(tien_ban)} đ\nDịch vụ: {_money(tien_dv)} đ\nTổng: {_money(tong)} đ",
         )
 
     # --- Hóa đơn ---

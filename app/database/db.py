@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 
 
@@ -12,12 +13,22 @@ def get_default_db_path() -> Path:
 
 
 SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS loai_ban (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ten TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    gia_gio_mac_dinh REAL NOT NULL DEFAULT 0,
+    sale_percent REAL NOT NULL DEFAULT 0,
+    ngay_tao DATETIME
+);
 CREATE TABLE IF NOT EXISTS ban (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ten_ban TEXT NOT NULL,
     loai_ban TEXT NOT NULL DEFAULT '',
+    loai_ban_id INTEGER,
     trang_thai TEXT CHECK(trang_thai IN ('trong','dang_choi')) DEFAULT 'trong',
-    gia_gio REAL NOT NULL
+    gia_gio REAL NOT NULL,
+    gia_gio_rieng REAL,
+    FOREIGN KEY (loai_ban_id) REFERENCES loai_ban(id)
 );
 CREATE TABLE IF NOT EXISTS nhan_vien (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,6 +43,8 @@ CREATE TABLE IF NOT EXISTS phien_choi (
     nhan_vien_id INTEGER,
     gio_bat_dau DATETIME,
     gio_ket_thuc DATETIME,
+    gia_gio_ap_dung REAL,
+    sale_percent_ap_dung REAL NOT NULL DEFAULT 0,
     FOREIGN KEY (ban_id) REFERENCES ban(id),
     FOREIGN KEY (nhan_vien_id) REFERENCES nhan_vien(id)
 );
@@ -89,6 +102,8 @@ class Database:
         conn.executescript(SCHEMA_SQL)
         conn.commit()
         self._migrate_ban_loai_ban(conn)
+        self._migrate_loai_ban_and_pricing(conn)
+        self._migrate_phien_pricing(conn)
 
     def _migrate_ban_loai_ban(self, conn: sqlite3.Connection) -> None:
         cur = conn.execute("PRAGMA table_info(ban)")
@@ -97,6 +112,64 @@ class Database:
             conn.execute("ALTER TABLE ban ADD COLUMN loai_ban TEXT DEFAULT ''")
             conn.execute("UPDATE ban SET loai_ban = '' WHERE loai_ban IS NULL")
             conn.commit()
+
+    def _migrate_loai_ban_and_pricing(self, conn: sqlite3.Connection) -> None:
+        # 1) Ensure columns exist on ban
+        cur = conn.execute("PRAGMA table_info(ban)")
+        cols = {row[1] for row in cur.fetchall()}
+        if "loai_ban_id" not in cols:
+            conn.execute("ALTER TABLE ban ADD COLUMN loai_ban_id INTEGER")
+        if "gia_gio_rieng" not in cols:
+            conn.execute("ALTER TABLE ban ADD COLUMN gia_gio_rieng REAL")
+
+        # 2) Ensure loai_ban table exists (for older DB created before SCHEMA_SQL update)
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS loai_ban (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ten TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                gia_gio_mac_dinh REAL NOT NULL DEFAULT 0,
+                sale_percent REAL NOT NULL DEFAULT 0,
+                ngay_tao DATETIME
+            )"""
+        )
+
+        # 3) Migrate legacy ban.loai_ban (TEXT) -> loai_ban row + ban.loai_ban_id
+        # Note: do NOT overwrite existing loai_ban_id if already set.
+        cur = conn.execute(
+            """SELECT DISTINCT TRIM(COALESCE(loai_ban, '')) AS lo
+               FROM ban
+               WHERE TRIM(COALESCE(loai_ban, '')) != ''"""
+        )
+        los = [row[0] for row in cur.fetchall() if row[0]]
+        if not los:
+            conn.commit()
+            return
+        now = datetime.now().isoformat(timespec="seconds")
+        for lo in los:
+            # Create type if missing; default price 0 to avoid changing legacy pricing.
+            conn.execute(
+                "INSERT OR IGNORE INTO loai_ban (ten, gia_gio_mac_dinh, sale_percent, ngay_tao) VALUES (?, 0, 0, ?)",
+                (lo, now),
+            )
+            # Map ban rows (only those not mapped yet)
+            conn.execute(
+                """UPDATE ban
+                   SET loai_ban_id = (SELECT id FROM loai_ban WHERE ten = ?)
+                   WHERE loai_ban_id IS NULL AND TRIM(COALESCE(loai_ban, '')) = ?""",
+                (lo, lo),
+            )
+        conn.commit()
+
+    def _migrate_phien_pricing(self, conn: sqlite3.Connection) -> None:
+        cur = conn.execute("PRAGMA table_info(phien_choi)")
+        cols = {row[1] for row in cur.fetchall()}
+        if "gia_gio_ap_dung" not in cols:
+            conn.execute("ALTER TABLE phien_choi ADD COLUMN gia_gio_ap_dung REAL")
+        if "sale_percent_ap_dung" not in cols:
+            conn.execute(
+                "ALTER TABLE phien_choi ADD COLUMN sale_percent_ap_dung REAL NOT NULL DEFAULT 0"
+            )
+        conn.commit()
 
     def close(self) -> None:
         if self._conn is not None:
