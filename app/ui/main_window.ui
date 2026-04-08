@@ -984,7 +984,124 @@
        <attribute name="title">
         <string>Quản lý — Dịch vụ</string>
        </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_dv">
+       <layout class="QVBoxLayout" name="verticalLayout_dv_outer">
+        <item>
+         <widget class="QTabWidget" name="tabWidgetDichVuSub">
+          <property name="currentIndex">
+           <number>0</number>
+          </property>
+          <widget class="QWidget" name="tabDanhMucDV">
+           <attribute name="title">
+            <string>Danh mục</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout_dv_dm">
+            <item>
+             <widget class="QLabel" name="labelDanhMucDVHint">
+              <property name="text">
+               <string>Quản lý nhóm hàng (đồ ăn, thức uống, ...). Chỉ xóa được danh mục khi không còn mặt hàng nào thuộc nhóm đó.</string>
+              </property>
+              <property name="wordWrap">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QTableWidget" name="tableDanhMucDichVu">
+              <property name="alternatingRowColors">
+               <bool>true</bool>
+              </property>
+              <property name="selectionBehavior">
+               <enum>QAbstractItemView::SelectRows</enum>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QFormLayout" name="formLayout_dv_dm">
+              <item row="0" column="0">
+               <widget class="QLabel" name="label_dv_dm_ten">
+                <property name="text">
+                 <string>Tên danh mục</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLineEdit" name="editDanhMucDVTen"/>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_dv_dm_btns">
+              <item>
+               <widget class="QPushButton" name="btnDanhMucDVThem">
+                <property name="text">
+                 <string>Thêm</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btnDanhMucDVSua">
+                <property name="text">
+                 <string>Cập nhật</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btnDanhMucDVXoa">
+                <property name="text">
+                 <string>Xóa</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btnDanhMucDVLamMoi">
+                <property name="text">
+                 <string>Làm mới</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="tabMatHangDV">
+           <attribute name="title">
+            <string>Dịch vụ</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout_dv">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_dv_loc">
+          <item>
+           <widget class="QLabel" name="label_dv_loc">
+            <property name="text">
+             <string>Lọc danh mục</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboDVLocDanhMuc">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_dv_loc">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
         <item>
          <widget class="QTableWidget" name="tableDichVu">
           <property name="alternatingRowColors">
@@ -998,23 +1115,33 @@
         <item>
          <layout class="QFormLayout" name="formLayout_dv">
           <item row="0" column="0">
+           <widget class="QLabel" name="label_dv_danh_muc">
+            <property name="text">
+             <string>Danh mục</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="comboDVDanhMuc"/>
+          </item>
+          <item row="1" column="0">
            <widget class="QLabel" name="label_dv_ten">
             <property name="text">
              <string>Tên</string>
             </property>
            </widget>
           </item>
-          <item row="0" column="1">
+          <item row="1" column="1">
            <widget class="QLineEdit" name="editDVTen"/>
           </item>
-          <item row="1" column="0">
+          <item row="2" column="0">
            <widget class="QLabel" name="label_dv_gia">
             <property name="text">
              <string>Giá (VNĐ)</string>
             </property>
            </widget>
           </item>
-          <item row="1" column="1">
+          <item row="2" column="1">
            <widget class="QDoubleSpinBox" name="spinDVGia">
             <property name="decimals">
              <number>0</number>
@@ -1060,6 +1187,10 @@
            </widget>
           </item>
          </layout>
+        </item>
+       </layout>
+          </widget>
+         </widget>
         </item>
        </layout>
       </widget>

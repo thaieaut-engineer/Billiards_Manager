@@ -97,10 +97,17 @@ CREATE TABLE IF NOT EXISTS phien_choi (
     FOREIGN KEY (ban_id) REFERENCES ban(id),
     FOREIGN KEY (nhan_vien_id) REFERENCES nhan_vien(id)
 );
+CREATE TABLE IF NOT EXISTS danh_muc_dich_vu (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ten TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    ngay_tao DATETIME
+);
 CREATE TABLE IF NOT EXISTS dich_vu (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ten TEXT NOT NULL,
-    gia REAL NOT NULL
+    gia REAL NOT NULL,
+    danh_muc_id INTEGER NOT NULL,
+    FOREIGN KEY (danh_muc_id) REFERENCES danh_muc_dich_vu(id)
 );
 CREATE TABLE IF NOT EXISTS hoa_don (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,6 +161,88 @@ class Database:
         self._migrate_loai_ban_and_pricing(conn)
         self._migrate_phien_pricing(conn)
         self._migrate_nhan_su(conn)
+        self._migrate_danh_muc_dich_vu(conn)
+
+    def _try_drop_column(
+        self, conn: sqlite3.Connection, table: str, column: str
+    ) -> None:
+        try:
+            conn.execute(f'ALTER TABLE "{table}" DROP COLUMN "{column}"')
+        except sqlite3.OperationalError:
+            pass
+
+    def _migrate_danh_muc_dich_vu(self, conn: sqlite3.Connection) -> None:
+        now = datetime.now().isoformat(timespec="seconds")
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS danh_muc_dich_vu (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ten TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                ngay_tao DATETIME
+            )"""
+        )
+        cur = conn.execute("SELECT COUNT(1) AS c FROM danh_muc_dich_vu")
+        if int(cur.fetchone()[0]) == 0:
+            for t in ("Đồ ăn", "Thức uống", "Đồ ăn vặt", "Khác"):
+                conn.execute(
+                    "INSERT INTO danh_muc_dich_vu (ten, ngay_tao) VALUES (?, ?)",
+                    (t, now),
+                )
+            conn.commit()
+
+        cur = conn.execute("PRAGMA table_info(dich_vu)")
+        cols = {row[1] for row in cur.fetchall()}
+        if "danh_muc_id" in cols:
+            if "danh_muc" in cols:
+                self._try_drop_column(conn, "dich_vu", "danh_muc")
+                conn.commit()
+            return
+
+        cur = conn.execute(
+            "SELECT id FROM danh_muc_dich_vu WHERE ten = 'Khác' LIMIT 1"
+        )
+        row_khac = cur.fetchone()
+        khac_id = int(row_khac[0]) if row_khac else None
+        if khac_id is None:
+            conn.execute(
+                "INSERT INTO danh_muc_dich_vu (ten, ngay_tao) VALUES ('Khác', ?)",
+                (now,),
+            )
+            khac_id = int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
+
+        if "danh_muc" in cols:
+            cur = conn.execute(
+                """SELECT DISTINCT TRIM(COALESCE(danh_muc, '')) AS t
+                   FROM dich_vu
+                   WHERE TRIM(COALESCE(danh_muc, '')) != ''"""
+            )
+            for (t,) in cur.fetchall():
+                conn.execute(
+                    "INSERT OR IGNORE INTO danh_muc_dich_vu (ten, ngay_tao) VALUES (?, ?)",
+                    (t, now),
+                )
+            conn.execute(
+                "ALTER TABLE dich_vu ADD COLUMN danh_muc_id INTEGER REFERENCES danh_muc_dich_vu(id)"
+            )
+            conn.execute(
+                """UPDATE dich_vu SET danh_muc_id = (
+                    SELECT m.id FROM danh_muc_dich_vu m
+                    WHERE LOWER(m.ten) = LOWER(TRIM(dich_vu.danh_muc))
+                ) WHERE danh_muc_id IS NULL"""
+            )
+            conn.execute(
+                "UPDATE dich_vu SET danh_muc_id = ? WHERE danh_muc_id IS NULL",
+                (khac_id,),
+            )
+            self._try_drop_column(conn, "dich_vu", "danh_muc")
+        else:
+            conn.execute(
+                "ALTER TABLE dich_vu ADD COLUMN danh_muc_id INTEGER REFERENCES danh_muc_dich_vu(id)"
+            )
+            conn.execute(
+                "UPDATE dich_vu SET danh_muc_id = ? WHERE danh_muc_id IS NULL",
+                (khac_id,),
+            )
+        conn.commit()
 
     def _migrate_ban_loai_ban(self, conn: sqlite3.Connection) -> None:
         cur = conn.execute("PRAGMA table_info(ban)")

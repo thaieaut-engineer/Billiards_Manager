@@ -6,6 +6,7 @@ from .ca_lam_model import CaLamModel
 from .cham_cong_model import ChamCongModel
 from .phan_cong_model import PhanCongModel
 from .bang_luong_model import BangLuongModel
+from .danh_muc_dich_vu_model import DanhMucDichVuModel
 from .dich_vu_model import DichVuModel
 from .phien_choi_model import PhienChoiModel
 from .hoa_don_model import HoaDonModel
@@ -20,6 +21,7 @@ __all__ = [
     "ChamCongModel",
     "PhanCongModel",
     "BangLuongModel",
+    "DanhMucDichVuModel",
     "DichVuModel",
     "PhienChoiModel",
     "HoaDonModel",

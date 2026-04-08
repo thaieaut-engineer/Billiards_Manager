@@ -26,6 +26,7 @@ from app.models import (
     ChamCongModel,
     ChucVuModel,
     BangLuongModel,
+    DanhMucDichVuModel,
     DichVuModel,
     HoaDonModel,
     LoaiBanModel,
@@ -68,6 +69,7 @@ class MainController:
         self._cham_cong = ChamCongModel(self._conn)
         self._phan_cong = PhanCongModel(self._conn)
         self._bang_luong = BangLuongModel(self._conn)
+        self._dm_dv = DanhMucDichVuModel(self._conn)
         self._dv = DichVuModel(self._conn)
         self._phien = PhienChoiModel(self._conn)
         self._hd = HoaDonModel(self._conn)
@@ -96,6 +98,7 @@ class MainController:
         self._setup_luong_dates()
         self.refresh_cham_cong()
         self.refresh_bang_luong()
+        self.refresh_danh_muc_dich_vu()
         self.refresh_dich_vu()
         self.refresh_phien_choi_ui()
         self.refresh_hoa_don()
@@ -154,9 +157,14 @@ class MainController:
         t.setHorizontalHeaderLabels(["Dịch vụ", "Đơn giá", "SL", "Thành tiền"])
         t.horizontalHeader().setStretchLastSection(True)
 
-        t = self._view.tableDichVu
+        t = self._view.tableDanhMucDichVu
         t.setColumnCount(3)
-        t.setHorizontalHeaderLabels(["ID", "Tên", "Giá"])
+        t.setHorizontalHeaderLabels(["ID", "Tên danh mục", "Ngày tạo"])
+        t.horizontalHeader().setStretchLastSection(True)
+
+        t = self._view.tableDichVu
+        t.setColumnCount(4)
+        t.setHorizontalHeaderLabels(["ID", "Danh mục", "Tên", "Giá"])
         t.horizontalHeader().setStretchLastSection(True)
 
         t = self._view.tableHoaDon
@@ -235,6 +243,12 @@ class MainController:
         v.btnDVXoa.clicked.connect(self._on_dv_xoa)
         v.btnDVLamMoi.clicked.connect(self.refresh_dich_vu)
         v.tableDichVu.itemSelectionChanged.connect(self._on_dv_select)
+        v.comboDVLocDanhMuc.currentIndexChanged.connect(self._on_dv_loc_changed)
+        v.btnDanhMucDVThem.clicked.connect(self._on_danh_muc_dv_them)
+        v.btnDanhMucDVSua.clicked.connect(self._on_danh_muc_dv_sua)
+        v.btnDanhMucDVXoa.clicked.connect(self._on_danh_muc_dv_xoa)
+        v.btnDanhMucDVLamMoi.clicked.connect(self.refresh_danh_muc_dich_vu)
+        v.tableDanhMucDichVu.itemSelectionChanged.connect(self._on_danh_muc_dv_select)
 
         v.btnHoaDonLamMoi.clicked.connect(self.refresh_hoa_don)
         v.btnXuatHoaDon.clicked.connect(self._on_xuat_hoa_don)
@@ -330,6 +344,15 @@ class MainController:
         self._view.btnDVThem.setEnabled(not staff)
         self._view.btnDVSua.setEnabled(not staff)
         self._view.btnDVXoa.setEnabled(not staff)
+        for w in (
+            self._view.btnDanhMucDVThem,
+            self._view.btnDanhMucDVSua,
+            self._view.btnDanhMucDVXoa,
+            self._view.btnDanhMucDVLamMoi,
+            self._view.tableDanhMucDichVu,
+            self._view.editDanhMucDVTen,
+        ):
+            w.setEnabled(not staff)
         self._view.btnLocDoanhThu.setEnabled(not staff)
         self._view.actionTaoTaiKhoan.setVisible(admin)
         self._view.actionTaoTaiKhoan.setEnabled(admin)
@@ -1170,25 +1193,166 @@ class MainController:
             return
         self.refresh_nhan_vien()
 
-    # --- Dịch vụ (danh mục) ---
-    def refresh_dich_vu(self) -> None:
-        rows = self._dv.list_all()
-        t = self._view.tableDichVu
+    # --- Danh mục dịch vụ (nhóm) ---
+    def refresh_danh_muc_dich_vu(self) -> None:
+        rows = self._dm_dv.list_all()
+        t = self._view.tableDanhMucDichVu
         t.setRowCount(len(rows))
         for i, r in enumerate(rows):
             t.setItem(i, 0, QTableWidgetItem(str(r["id"])))
             t.setItem(i, 1, QTableWidgetItem(r["ten"]))
-            t.setItem(i, 2, QTableWidgetItem(_money(float(r["gia"]))))
+            t.setItem(i, 2, QTableWidgetItem(str(r["ngay_tao"] or "")))
+        t.clearSelection()
+        self._view.editDanhMucDVTen.clear()
+
+    def _selected_danh_muc_dv_id(self) -> int | None:
+        rows = self._view.tableDanhMucDichVu.selectionModel().selectedRows()
+        if not rows:
+            return None
+        it = self._view.tableDanhMucDichVu.item(rows[0].row(), 0)
+        return int(it.text()) if it else None
+
+    def _on_danh_muc_dv_select(self) -> None:
+        mid = self._selected_danh_muc_dv_id()
+        if mid is None:
+            return
+        r = self._dm_dv.get(mid)
+        if not r:
+            return
+        self._view.editDanhMucDVTen.setText(r["ten"])
+
+    def _on_danh_muc_dv_them(self) -> None:
+        ten = self._view.editDanhMucDVTen.text().strip()
+        if not ten:
+            QMessageBox.warning(self._view, "Thiếu dữ liệu", "Nhập tên danh mục.")
+            return
+        try:
+            self._dm_dv.create(ten)
+        except ValueError as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        except sqlite3.IntegrityError:
+            QMessageBox.critical(self._view, "Lỗi", "Tên danh mục đã tồn tại.")
+            return
+        except sqlite3.Error as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        self.refresh_danh_muc_dich_vu()
+        self.refresh_dich_vu()
+
+    def _on_danh_muc_dv_sua(self) -> None:
+        mid = self._selected_danh_muc_dv_id()
+        if mid is None:
+            QMessageBox.information(self._view, "Chọn danh mục", "Chọn một dòng trong bảng.")
+            return
+        ten = self._view.editDanhMucDVTen.text().strip()
+        if not ten:
+            QMessageBox.warning(self._view, "Thiếu dữ liệu", "Nhập tên danh mục.")
+            return
+        try:
+            self._dm_dv.update(mid, ten)
+        except ValueError as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        except sqlite3.IntegrityError:
+            QMessageBox.critical(self._view, "Lỗi", "Tên danh mục đã tồn tại.")
+            return
+        except sqlite3.Error as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        self.refresh_danh_muc_dich_vu()
+        self.refresh_dich_vu()
+
+    def _on_danh_muc_dv_xoa(self) -> None:
+        mid = self._selected_danh_muc_dv_id()
+        if mid is None:
+            QMessageBox.information(self._view, "Chọn danh mục", "Chọn một dòng trong bảng.")
+            return
+        if QMessageBox.question(self._view, "Xác nhận", "Xóa danh mục này?") != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            self._dm_dv.delete(mid)
+        except (ValueError, sqlite3.Error) as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        self.refresh_danh_muc_dich_vu()
+        self.refresh_dich_vu()
+
+    # --- Dịch vụ (mặt hàng) ---
+    def _default_danh_muc_id(self) -> int:
+        r = self._dm_dv.get_by_name("Thức uống")
+        if r:
+            return int(r["id"])
+        rows = self._dm_dv.list_all()
+        if rows:
+            return int(rows[0]["id"])
+        return 1
+
+    def _current_dv_loc_filter(self) -> int | None:
+        c = self._view.comboDVLocDanhMuc
+        if c.count() == 0:
+            return None
+        d = c.currentData()
+        return None if d is None else int(d)
+
+    def _populate_dv_loc_combo(self) -> None:
+        c = self._view.comboDVLocDanhMuc
+        prev = c.currentData()
+        c.blockSignals(True)
+        c.clear()
+        c.addItem("Tất cả", None)
+        for r in self._dm_dv.list_all():
+            c.addItem(r["ten"], int(r["id"]))
+        if prev is None:
+            c.setCurrentIndex(0)
+        else:
+            idx = c.findData(prev)
+            c.setCurrentIndex(idx if idx >= 0 else 0)
+        c.blockSignals(False)
+
+    def _sync_dv_danh_muc_editor_combo(self, preserve_id: int | None) -> None:
+        c = self._view.comboDVDanhMuc
+        c.blockSignals(True)
+        c.clear()
+        for r in self._dm_dv.list_all():
+            c.addItem(r["ten"], int(r["id"]))
+        pid = preserve_id if preserve_id is not None else self._default_danh_muc_id()
+        idx = c.findData(pid)
+        if idx >= 0:
+            c.setCurrentIndex(idx)
+        elif c.count() > 0:
+            c.setCurrentIndex(0)
+        c.blockSignals(False)
+
+    def _on_dv_loc_changed(self, _i: int) -> None:
+        self.refresh_dich_vu()
+
+    def refresh_dich_vu(self) -> None:
+        flt = self._current_dv_loc_filter()
+        rows = self._dv.list_all(danh_muc_id=flt)
+        t = self._view.tableDichVu
+        t.setRowCount(len(rows))
+        for i, r in enumerate(rows):
+            t.setItem(i, 0, QTableWidgetItem(str(r["id"])))
+            t.setItem(i, 1, QTableWidgetItem(r["danh_muc"] or ""))
+            t.setItem(i, 2, QTableWidgetItem(r["ten"]))
+            t.setItem(i, 3, QTableWidgetItem(_money(float(r["gia"]))))
+        self._populate_dv_loc_combo()
         self._fill_combo_dv_phien()
         t.clearSelection()
         self._view.editDVTen.clear()
         self._view.spinDVGia.setValue(0)
+        self._sync_dv_danh_muc_editor_combo(self._default_danh_muc_id())
 
     def _fill_combo_dv_phien(self) -> None:
         c = self._view.comboDichVuPhien
         c.clear()
         for r in self._dv.list_all():
-            c.addItem(f"{r['ten']} — {_money(float(r['gia']))}đ", r["id"])
+            dm = r["danh_muc"] or ""
+            label = f"{r['ten']} — {_money(float(r['gia']))}đ"
+            if dm:
+                label = f"[{dm}] {label}"
+            c.addItem(label, r["id"])
 
     def _selected_dv_id(self) -> int | None:
         rows = self._view.tableDichVu.selectionModel().selectedRows()
@@ -1206,13 +1370,18 @@ class MainController:
             return
         self._view.editDVTen.setText(r["ten"])
         self._view.spinDVGia.setValue(float(r["gia"]))
+        self._sync_dv_danh_muc_editor_combo(int(r["danh_muc_id"]))
 
     def _on_dv_them(self) -> None:
         ten = self._view.editDVTen.text().strip()
         if not ten:
             QMessageBox.warning(self._view, "Thiếu dữ liệu", "Nhập tên dịch vụ.")
             return
-        self._dv.create(ten, self._view.spinDVGia.value())
+        dm_id = self._view.comboDVDanhMuc.currentData()
+        if dm_id is None:
+            QMessageBox.warning(self._view, "Thiếu dữ liệu", "Chọn danh mục.")
+            return
+        self._dv.create(ten, self._view.spinDVGia.value(), int(dm_id))
         self.refresh_dich_vu()
 
     def _on_dv_sua(self) -> None:
@@ -1224,7 +1393,11 @@ class MainController:
         if not ten:
             QMessageBox.warning(self._view, "Thiếu dữ liệu", "Nhập tên dịch vụ.")
             return
-        self._dv.update(did, ten, self._view.spinDVGia.value())
+        dm_id = self._view.comboDVDanhMuc.currentData()
+        if dm_id is None:
+            QMessageBox.warning(self._view, "Thiếu dữ liệu", "Chọn danh mục.")
+            return
+        self._dv.update(did, ten, self._view.spinDVGia.value(), int(dm_id))
         self.refresh_dich_vu()
 
     def _on_dv_xoa(self) -> None:
