@@ -37,6 +37,55 @@ CREATE TABLE IF NOT EXISTS nhan_vien (
     luong REAL,
     chuc_vu TEXT
 );
+CREATE TABLE IF NOT EXISTS chuc_vu (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ten TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    he_so REAL NOT NULL DEFAULT 1.0,
+    ngay_tao DATETIME
+);
+CREATE TABLE IF NOT EXISTS ca_lam (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ten TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    gio_bat_dau TEXT NOT NULL,  -- 'HH:MM'
+    gio_ket_thuc TEXT NOT NULL, -- 'HH:MM' (có thể qua ngày)
+    he_so REAL NOT NULL DEFAULT 1.0,
+    ngay_tao DATETIME
+);
+CREATE TABLE IF NOT EXISTS cham_cong (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nhan_vien_id INTEGER NOT NULL,
+    ca_id INTEGER NOT NULL,
+    ngay DATE NOT NULL,         -- 'YYYY-MM-DD'
+    gio_vao DATETIME,           -- 'YYYY-MM-DDTHH:MM:SS'
+    gio_ra DATETIME,            -- 'YYYY-MM-DDTHH:MM:SS'
+    so_gio REAL,                -- nếu NULL thì tính từ giờ vào/ra hoặc theo ca
+    ghi_chu TEXT,
+    FOREIGN KEY (nhan_vien_id) REFERENCES nhan_vien(id),
+    FOREIGN KEY (ca_id) REFERENCES ca_lam(id)
+);
+CREATE TABLE IF NOT EXISTS phan_cong_ca (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nhan_vien_id INTEGER NOT NULL,
+    ca_id INTEGER NOT NULL,
+    ngay DATE NOT NULL,         -- 'YYYY-MM-DD'
+    ghi_chu TEXT,
+    ngay_tao DATETIME,
+    FOREIGN KEY (nhan_vien_id) REFERENCES nhan_vien(id),
+    FOREIGN KEY (ca_id) REFERENCES ca_lam(id)
+);
+CREATE TABLE IF NOT EXISTS bang_luong (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nhan_vien_id INTEGER NOT NULL,
+    tu_ngay DATE NOT NULL,
+    den_ngay DATE NOT NULL,
+    tong_gio REAL NOT NULL,
+    tong_tien REAL NOT NULL,
+    ngay_tao DATETIME,
+    da_tra INTEGER NOT NULL DEFAULT 0,
+    ngay_tra DATETIME,
+    ghi_chu TEXT,
+    FOREIGN KEY (nhan_vien_id) REFERENCES nhan_vien(id)
+);
 CREATE TABLE IF NOT EXISTS phien_choi (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ban_id INTEGER,
@@ -104,6 +153,7 @@ class Database:
         self._migrate_ban_loai_ban(conn)
         self._migrate_loai_ban_and_pricing(conn)
         self._migrate_phien_pricing(conn)
+        self._migrate_nhan_su(conn)
 
     def _migrate_ban_loai_ban(self, conn: sqlite3.Connection) -> None:
         cur = conn.execute("PRAGMA table_info(ban)")
@@ -169,6 +219,125 @@ class Database:
             conn.execute(
                 "ALTER TABLE phien_choi ADD COLUMN sale_percent_ap_dung REAL NOT NULL DEFAULT 0"
             )
+        conn.commit()
+
+    def _migrate_nhan_su(self, conn: sqlite3.Connection) -> None:
+        # 1) Ensure columns exist on nhan_vien (giữ lại cột legacy luong/chuc_vu)
+        cur = conn.execute("PRAGMA table_info(nhan_vien)")
+        cols = {row[1] for row in cur.fetchall()}
+        if "luong_gio" not in cols:
+            conn.execute("ALTER TABLE nhan_vien ADD COLUMN luong_gio REAL")
+        if "chuc_vu_id" not in cols:
+            conn.execute("ALTER TABLE nhan_vien ADD COLUMN chuc_vu_id INTEGER")
+
+        # 2) Ensure tables exist (trường hợp DB cũ thiếu do SCHEMA_SQL chưa chạy)
+        now = datetime.now().isoformat(timespec="seconds")
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS chuc_vu (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ten TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                he_so REAL NOT NULL DEFAULT 1.0,
+                ngay_tao DATETIME
+            )"""
+        )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS ca_lam (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ten TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                gio_bat_dau TEXT NOT NULL,
+                gio_ket_thuc TEXT NOT NULL,
+                he_so REAL NOT NULL DEFAULT 1.0,
+                ngay_tao DATETIME
+            )"""
+        )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS cham_cong (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nhan_vien_id INTEGER NOT NULL,
+                ca_id INTEGER NOT NULL,
+                ngay DATE NOT NULL,
+                gio_vao DATETIME,
+                gio_ra DATETIME,
+                so_gio REAL,
+                ghi_chu TEXT,
+                FOREIGN KEY (nhan_vien_id) REFERENCES nhan_vien(id),
+                FOREIGN KEY (ca_id) REFERENCES ca_lam(id)
+            )"""
+        )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS phan_cong_ca (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nhan_vien_id INTEGER NOT NULL,
+                ca_id INTEGER NOT NULL,
+                ngay DATE NOT NULL,
+                ghi_chu TEXT,
+                ngay_tao DATETIME,
+                FOREIGN KEY (nhan_vien_id) REFERENCES nhan_vien(id),
+                FOREIGN KEY (ca_id) REFERENCES ca_lam(id)
+            )"""
+        )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS bang_luong (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nhan_vien_id INTEGER NOT NULL,
+                tu_ngay DATE NOT NULL,
+                den_ngay DATE NOT NULL,
+                tong_gio REAL NOT NULL,
+                tong_tien REAL NOT NULL,
+                ngay_tao DATETIME,
+                da_tra INTEGER NOT NULL DEFAULT 0,
+                ngay_tra DATETIME,
+                ghi_chu TEXT,
+                FOREIGN KEY (nhan_vien_id) REFERENCES nhan_vien(id)
+            )"""
+        )
+
+        # 2b) Ensure new columns exist on bang_luong (DB cũ tạo trước khi thêm cột)
+        cur = conn.execute("PRAGMA table_info(bang_luong)")
+        cols = {row[1] for row in cur.fetchall()}
+        if "da_tra" not in cols:
+            conn.execute("ALTER TABLE bang_luong ADD COLUMN da_tra INTEGER NOT NULL DEFAULT 0")
+        if "ngay_tra" not in cols:
+            conn.execute("ALTER TABLE bang_luong ADD COLUMN ngay_tra DATETIME")
+        if "ghi_chu" not in cols:
+            conn.execute("ALTER TABLE bang_luong ADD COLUMN ghi_chu TEXT")
+
+        # 3) Seed default shifts if empty
+        cur = conn.execute("SELECT COUNT(1) AS c FROM ca_lam")
+        if int(cur.fetchone()[0]) == 0:
+            conn.execute(
+                "INSERT INTO ca_lam (ten, gio_bat_dau, gio_ket_thuc, he_so, ngay_tao) VALUES (?, ?, ?, ?, ?)",
+                ("Ca ngày", "08:00", "16:00", 1.0, now),
+            )
+            conn.execute(
+                "INSERT INTO ca_lam (ten, gio_bat_dau, gio_ket_thuc, he_so, ngay_tao) VALUES (?, ?, ?, ?, ?)",
+                ("Ca chiều", "16:00", "22:00", 1.0, now),
+            )
+            conn.execute(
+                "INSERT INTO ca_lam (ten, gio_bat_dau, gio_ket_thuc, he_so, ngay_tao) VALUES (?, ?, ?, ?, ?)",
+                ("Ca đêm", "22:00", "06:00", 1.3, now),
+            )
+
+        # 4) Migrate legacy text chuc_vu -> chuc_vu table and set nhan_vien.chuc_vu_id
+        cur = conn.execute(
+            """SELECT DISTINCT TRIM(COALESCE(chuc_vu, '')) AS cv
+               FROM nhan_vien
+               WHERE TRIM(COALESCE(chuc_vu, '')) != ''"""
+        )
+        cvs = [row[0] for row in cur.fetchall() if row[0]]
+        for cv in cvs:
+            conn.execute(
+                "INSERT OR IGNORE INTO chuc_vu (ten, he_so, ngay_tao) VALUES (?, 1.0, ?)",
+                (cv, now),
+            )
+            conn.execute(
+                """UPDATE nhan_vien
+                   SET chuc_vu_id = (SELECT id FROM chuc_vu WHERE ten = ?)
+                   WHERE chuc_vu_id IS NULL AND TRIM(COALESCE(chuc_vu, '')) = ?""",
+                (cv, cv),
+            )
+
+        # 5) If luong_gio missing but luong(month) exists, leave NULL (tùy bạn nhập lại)
         conn.commit()
 
     def close(self) -> None:

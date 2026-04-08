@@ -329,7 +329,7 @@
           <item row="2" column="0">
            <widget class="QLabel" name="label_nv_luong">
             <property name="text">
-             <string>Lương (VNĐ/tháng)</string>
+            <string>Lương / giờ (VNĐ)</string>
             </property>
            </widget>
           </item>
@@ -342,7 +342,7 @@
              <double>100000000.000000000000000</double>
             </property>
             <property name="singleStep">
-             <double>500000.000000000000000</double>
+            <double>1000.000000000000000</double>
             </property>
            </widget>
           </item>
@@ -354,7 +354,7 @@
            </widget>
           </item>
           <item row="3" column="1">
-           <widget class="QLineEdit" name="editNVChucVu"/>
+          <widget class="QComboBox" name="comboNVChucVu"/>
           </item>
          </layout>
         </item>
@@ -392,6 +392,349 @@
         </item>
        </layout>
       </widget>
+
+      <widget class="QWidget" name="tabChucVu">
+       <attribute name="title">
+        <string>Nhân sự — Chức vụ</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_chucvu">
+        <item>
+         <widget class="QTableWidget" name="tableChucVu">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QFormLayout" name="formLayout_chucvu">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_cv_ten">
+            <property name="text">
+             <string>Tên chức vụ</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="editChucVuTen"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_cv_heso">
+            <property name="text">
+             <string>Hệ số</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QDoubleSpinBox" name="spinChucVuHeSo">
+            <property name="decimals">
+             <number>2</number>
+            </property>
+            <property name="minimum">
+             <double>0.100000000000000</double>
+            </property>
+            <property name="maximum">
+             <double>10.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.100000000000000</double>
+            </property>
+            <property name="value">
+             <double>1.000000000000000</double>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_cv_btns">
+          <item>
+           <widget class="QPushButton" name="btnChucVuThem">
+            <property name="text">
+             <string>Thêm</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnChucVuSua">
+            <property name="text">
+             <string>Cập nhật</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnChucVuXoa">
+            <property name="text">
+             <string>Xóa</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnChucVuLamMoi">
+            <property name="text">
+             <string>Làm mới</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+
+      <widget class="QWidget" name="tabCaLam">
+       <attribute name="title">
+        <string>Nhân sự — Ca làm</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_calam">
+        <item>
+         <widget class="QTableWidget" name="tableCaLam">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QFormLayout" name="formLayout_calam">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_ca_ten">
+            <property name="text">
+             <string>Tên ca</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="editCaTen"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_ca_bd">
+            <property name="text">
+             <string>Giờ bắt đầu (HH:MM)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="editCaBatDau"/>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_ca_kt">
+            <property name="text">
+             <string>Giờ kết thúc (HH:MM)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLineEdit" name="editCaKetThuc"/>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_ca_heso">
+            <property name="text">
+             <string>Hệ số ca</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QDoubleSpinBox" name="spinCaHeSo">
+            <property name="decimals">
+             <number>2</number>
+            </property>
+            <property name="minimum">
+             <double>0.100000000000000</double>
+            </property>
+            <property name="maximum">
+             <double>10.000000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.100000000000000</double>
+            </property>
+            <property name="value">
+             <double>1.000000000000000</double>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_ca_btns">
+          <item>
+           <widget class="QPushButton" name="btnCaThem">
+            <property name="text">
+             <string>Thêm</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnCaSua">
+            <property name="text">
+             <string>Cập nhật</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnCaXoa">
+            <property name="text">
+             <string>Xóa</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnCaLamMoi">
+            <property name="text">
+             <string>Làm mới</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+
+      <widget class="QWidget" name="tabLuong">
+       <attribute name="title">
+        <string>Nhân sự — Phân ca &amp; trả lương</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_luong">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_cc_form">
+          <item>
+           <widget class="QLabel" name="label_cc_nv">
+            <property name="text">
+             <string>Nhân viên</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboCCNhanVien"/>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_cc_ca">
+            <property name="text">
+             <string>Ca</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboCCCa"/>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_cc_ngay">
+            <property name="text">
+             <string>Ngày</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QDateEdit" name="dateCCNgay">
+            <property name="calendarPopup">
+             <bool>true</bool>
+            </property>
+            <property name="displayFormat">
+             <string>yyyy-MM-dd</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnChamCongThem">
+            <property name="text">
+             <string>Gán ca</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnChamCongXoa">
+            <property name="text">
+             <string>Xóa phân công</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_luong_loc">
+          <item>
+           <widget class="QLabel" name="label_luong_tu">
+            <property name="text">
+             <string>Từ</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QDateEdit" name="dateLuongTu">
+            <property name="calendarPopup">
+             <bool>true</bool>
+            </property>
+            <property name="displayFormat">
+             <string>yyyy-MM-dd</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_luong_den">
+            <property name="text">
+             <string>Đến</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QDateEdit" name="dateLuongDen">
+            <property name="calendarPopup">
+             <bool>true</bool>
+            </property>
+            <property name="displayFormat">
+             <string>yyyy-MM-dd</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnTinhLuong">
+            <property name="text">
+             <string>Xem bảng lương kỳ 15</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnTraLuong">
+            <property name="text">
+             <string>Chốt &amp; trả lương</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="labelTongLuong">
+            <property name="text">
+             <string>Tổng: 0 VNĐ</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QTableWidget" name="tableChamCong">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QTableWidget" name="tableBangLuong">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectRows</enum>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+
       <widget class="QWidget" name="tabPhienChoi">
        <attribute name="title">
         <string>Vận hành — Phiên chơi</string>

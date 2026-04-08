@@ -11,23 +11,39 @@ class NhanVienModel:
 
     def list_all(self) -> list[sqlite3.Row]:
         cur = self._conn.execute(
-            "SELECT id, ten, so_dien_thoai, luong, chuc_vu FROM nhan_vien ORDER BY id"
+            """SELECT n.id, n.ten, n.so_dien_thoai,
+                      n.luong_gio, n.luong,
+                      COALESCE(cv.ten, n.chuc_vu, '') AS chuc_vu,
+                      n.chuc_vu_id
+               FROM nhan_vien n
+               LEFT JOIN chuc_vu cv ON cv.id = n.chuc_vu_id
+               ORDER BY n.id"""
         )
         return cur.fetchall()
 
     def get(self, nv_id: int) -> sqlite3.Row | None:
         cur = self._conn.execute(
-            "SELECT id, ten, so_dien_thoai, luong, chuc_vu FROM nhan_vien WHERE id = ?",
+            """SELECT n.id, n.ten, n.so_dien_thoai,
+                      n.luong_gio, n.luong,
+                      COALESCE(cv.ten, n.chuc_vu, '') AS chuc_vu,
+                      n.chuc_vu_id
+               FROM nhan_vien n
+               LEFT JOIN chuc_vu cv ON cv.id = n.chuc_vu_id
+               WHERE n.id = ?""",
             (nv_id,),
         )
         return cur.fetchone()
 
     def create(
-        self, ten: str, so_dien_thoai: str | None, luong: float | None, chuc_vu: str | None
+        self,
+        ten: str,
+        so_dien_thoai: str | None,
+        luong_gio: float | None,
+        chuc_vu_id: int | None,
     ) -> int:
         cur = self._conn.execute(
-            "INSERT INTO nhan_vien (ten, so_dien_thoai, luong, chuc_vu) VALUES (?, ?, ?, ?)",
-            (ten.strip(), so_dien_thoai or None, luong, chuc_vu or None),
+            "INSERT INTO nhan_vien (ten, so_dien_thoai, luong_gio, chuc_vu_id) VALUES (?, ?, ?, ?)",
+            (ten.strip(), so_dien_thoai or None, luong_gio, chuc_vu_id),
         )
         self._conn.commit()
         return int(cur.lastrowid)
@@ -37,12 +53,12 @@ class NhanVienModel:
         nv_id: int,
         ten: str,
         so_dien_thoai: str | None,
-        luong: float | None,
-        chuc_vu: str | None,
+        luong_gio: float | None,
+        chuc_vu_id: int | None,
     ) -> None:
         self._conn.execute(
-            "UPDATE nhan_vien SET ten = ?, so_dien_thoai = ?, luong = ?, chuc_vu = ? WHERE id = ?",
-            (ten.strip(), so_dien_thoai or None, luong, chuc_vu or None, nv_id),
+            "UPDATE nhan_vien SET ten = ?, so_dien_thoai = ?, luong_gio = ?, chuc_vu_id = ? WHERE id = ?",
+            (ten.strip(), so_dien_thoai or None, luong_gio, chuc_vu_id, nv_id),
         )
         self._conn.commit()
 

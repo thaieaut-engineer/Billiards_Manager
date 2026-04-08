@@ -22,10 +22,15 @@ from app.dialogs import ChangePasswordDialog, RegisterDialog
 from app.widgets import BanTile
 from app.models import (
     BanModel,
+    CaLamModel,
+    ChamCongModel,
+    ChucVuModel,
+    BangLuongModel,
     DichVuModel,
     HoaDonModel,
     LoaiBanModel,
     NhanVienModel,
+    PhanCongModel,
     PhienChoiModel,
     TaiKhoanModel,
 )
@@ -58,6 +63,11 @@ class MainController:
         self._ban = BanModel(self._conn)
         self._loai_ban = LoaiBanModel(self._conn)
         self._nv = NhanVienModel(self._conn)
+        self._chuc_vu = ChucVuModel(self._conn)
+        self._ca_lam = CaLamModel(self._conn)
+        self._cham_cong = ChamCongModel(self._conn)
+        self._phan_cong = PhanCongModel(self._conn)
+        self._bang_luong = BangLuongModel(self._conn)
         self._dv = DichVuModel(self._conn)
         self._phien = PhienChoiModel(self._conn)
         self._hd = HoaDonModel(self._conn)
@@ -81,6 +91,11 @@ class MainController:
         self.refresh_loai_ban()
         self.refresh_ban()
         self.refresh_nhan_vien()
+        self.refresh_chuc_vu()
+        self.refresh_ca_lam()
+        self._setup_luong_dates()
+        self.refresh_cham_cong()
+        self.refresh_bang_luong()
         self.refresh_dich_vu()
         self.refresh_phien_choi_ui()
         self.refresh_hoa_don()
@@ -104,7 +119,29 @@ class MainController:
 
         t = self._view.tableNhanVien
         t.setColumnCount(5)
-        t.setHorizontalHeaderLabels(["ID", "Họ tên", "SĐT", "Lương", "Chức vụ"])
+        t.setHorizontalHeaderLabels(["ID", "Họ tên", "SĐT", "Lương/giờ", "Chức vụ"])
+        t.horizontalHeader().setStretchLastSection(True)
+
+        t = self._view.tableChucVu
+        t.setColumnCount(3)
+        t.setHorizontalHeaderLabels(["ID", "Tên", "Hệ số"])
+        t.horizontalHeader().setStretchLastSection(True)
+
+        t = self._view.tableCaLam
+        t.setColumnCount(5)
+        t.setHorizontalHeaderLabels(["ID", "Tên", "Bắt đầu", "Kết thúc", "Hệ số"])
+        t.horizontalHeader().setStretchLastSection(True)
+
+        t = self._view.tableChamCong
+        t.setColumnCount(8)
+        t.setHorizontalHeaderLabels(
+            ["ID", "Ngày", "Nhân viên", "Ca", "Bắt đầu", "Kết thúc", "Hệ số ca", "Ghi chú"]
+        )
+        t.horizontalHeader().setStretchLastSection(True)
+
+        t = self._view.tableBangLuong
+        t.setColumnCount(6)
+        t.setHorizontalHeaderLabels(["NV", "Chức vụ", "Lương/giờ", "Tổng giờ", "Tổng tiền", "Ghi chú"])
         t.horizontalHeader().setStretchLastSection(True)
 
         t = self._view.tablePhienDangChoi
@@ -170,6 +207,23 @@ class MainController:
         v.btnNVLamMoi.clicked.connect(self.refresh_nhan_vien)
         v.tableNhanVien.itemSelectionChanged.connect(self._on_nv_select)
 
+        v.btnChucVuLamMoi.clicked.connect(self.refresh_chuc_vu)
+        v.btnChucVuThem.clicked.connect(self._on_chuc_vu_them)
+        v.btnChucVuSua.clicked.connect(self._on_chuc_vu_sua)
+        v.btnChucVuXoa.clicked.connect(self._on_chuc_vu_xoa)
+        v.tableChucVu.itemSelectionChanged.connect(self._on_chuc_vu_select)
+
+        v.btnCaLamMoi.clicked.connect(self.refresh_ca_lam)
+        v.btnCaThem.clicked.connect(self._on_ca_them)
+        v.btnCaSua.clicked.connect(self._on_ca_sua)
+        v.btnCaXoa.clicked.connect(self._on_ca_xoa)
+        v.tableCaLam.itemSelectionChanged.connect(self._on_ca_select)
+
+        v.btnChamCongThem.clicked.connect(self._on_cham_cong_them)
+        v.btnChamCongXoa.clicked.connect(self._on_cham_cong_xoa)
+        v.btnTinhLuong.clicked.connect(self._on_tinh_luong)
+        v.btnTraLuong.clicked.connect(self._on_tra_luong)
+
         v.btnBatDauPhien.clicked.connect(self._on_bat_dau_phien)
         v.tablePhienDangChoi.itemSelectionChanged.connect(self._on_phien_select)
         v.btnThemDVPhien.clicked.connect(self._on_them_dv_phien)
@@ -205,6 +259,12 @@ class MainController:
         today = date.today()
         self._view.dateTu.setDate(today)
         self._view.dateDen.setDate(today)
+
+    def _setup_luong_dates(self) -> None:
+        today = date.today()
+        self._view.dateCCNgay.setDate(today)
+        self._view.dateLuongTu.setDate(today)
+        self._view.dateLuongDen.setDate(today)
 
     def _setup_loai_ban_combo(self) -> None:
         self._reload_combo_loai_ban()
@@ -742,15 +802,20 @@ class MainController:
             t.setItem(i, 0, QTableWidgetItem(str(r["id"])))
             t.setItem(i, 1, QTableWidgetItem(r["ten"] or ""))
             t.setItem(i, 2, QTableWidgetItem(r["so_dien_thoai"] or ""))
-            luong = r["luong"]
-            t.setItem(i, 3, QTableWidgetItem(_money(float(luong)) if luong is not None else ""))
+            luong_gio = r["luong_gio"]
+            t.setItem(
+                i,
+                3,
+                QTableWidgetItem(_money(float(luong_gio)) if luong_gio is not None else ""),
+            )
             t.setItem(i, 4, QTableWidgetItem(r["chuc_vu"] or ""))
         self._fill_combo_nv()
+        self._reload_combo_nv_chuc_vu()
         t.clearSelection()
         self._view.editNVTen.clear()
         self._view.editNVSDT.clear()
         self._view.spinNVLuong.setValue(0)
-        self._view.editNVChucVu.clear()
+        self._view.comboNVChucVu.setCurrentIndex(0)
 
     def _fill_combo_nv(self) -> None:
         c = self._view.comboNVPhien
@@ -758,6 +823,21 @@ class MainController:
         c.addItem("(Không chọn)", None)
         for r in self._nv.list_all():
             c.addItem(r["ten"], r["id"])
+
+        c2 = self._view.comboCCNhanVien
+        c2.clear()
+        for r in self._nv.list_all():
+            c2.addItem(r["ten"], r["id"])
+
+    def _reload_combo_nv_chuc_vu(self) -> None:
+        c = self._view.comboNVChucVu
+        c.blockSignals(True)
+        c.clear()
+        c.addItem("(Không chọn)", None)
+        for r in self._chuc_vu.list_all():
+            c.addItem(r["ten"], int(r["id"]))
+        c.setCurrentIndex(0)
+        c.blockSignals(False)
 
     def _selected_nv_table_id(self) -> int | None:
         rows = self._view.tableNhanVien.selectionModel().selectedRows()
@@ -775,20 +855,23 @@ class MainController:
             return
         self._view.editNVTen.setText(r["ten"] or "")
         self._view.editNVSDT.setText(r["so_dien_thoai"] or "")
-        self._view.spinNVLuong.setValue(float(r["luong"] or 0))
-        self._view.editNVChucVu.setText(r["chuc_vu"] or "")
+        self._view.spinNVLuong.setValue(float(r["luong_gio"] or 0))
+        cv_id = r["chuc_vu_id"]
+        idx = self._view.comboNVChucVu.findData(int(cv_id)) if cv_id is not None else 0
+        self._view.comboNVChucVu.setCurrentIndex(idx if idx >= 0 else 0)
 
     def _on_nv_them(self) -> None:
         ten = self._view.editNVTen.text().strip()
         if not ten:
             QMessageBox.warning(self._view, "Thiếu dữ liệu", "Nhập họ tên.")
             return
-        luong = self._view.spinNVLuong.value()
+        luong_gio = self._view.spinNVLuong.value()
+        cv_id = self._view.comboNVChucVu.currentData()
         self._nv.create(
             ten,
             self._view.editNVSDT.text().strip() or None,
-            luong if luong > 0 else None,
-            self._view.editNVChucVu.text().strip() or None,
+            luong_gio if luong_gio > 0 else None,
+            int(cv_id) if cv_id is not None else None,
         )
         self.refresh_nhan_vien()
 
@@ -801,15 +884,277 @@ class MainController:
         if not ten:
             QMessageBox.warning(self._view, "Thiếu dữ liệu", "Nhập họ tên.")
             return
-        luong = self._view.spinNVLuong.value()
+        luong_gio = self._view.spinNVLuong.value()
+        cv_id = self._view.comboNVChucVu.currentData()
         self._nv.update(
             nid,
             ten,
             self._view.editNVSDT.text().strip() or None,
-            luong if luong > 0 else None,
-            self._view.editNVChucVu.text().strip() or None,
+            luong_gio if luong_gio > 0 else None,
+            int(cv_id) if cv_id is not None else None,
         )
         self.refresh_nhan_vien()
+
+    # --- Chức vụ ---
+    def refresh_chuc_vu(self) -> None:
+        rows = self._chuc_vu.list_all()
+        t = self._view.tableChucVu
+        t.setRowCount(len(rows))
+        for i, r in enumerate(rows):
+            t.setItem(i, 0, QTableWidgetItem(str(r["id"])))
+            t.setItem(i, 1, QTableWidgetItem(r["ten"]))
+            t.setItem(i, 2, QTableWidgetItem(f"{float(r['he_so']):.2f}"))
+        t.clearSelection()
+        self._view.editChucVuTen.clear()
+        self._view.spinChucVuHeSo.setValue(1.0)
+        self._reload_combo_nv_chuc_vu()
+
+    def _selected_chuc_vu_id(self) -> int | None:
+        rows = self._view.tableChucVu.selectionModel().selectedRows()
+        if not rows:
+            return None
+        it = self._view.tableChucVu.item(rows[0].row(), 0)
+        return int(it.text()) if it else None
+
+    def _on_chuc_vu_select(self) -> None:
+        cv_id = self._selected_chuc_vu_id()
+        if cv_id is None:
+            return
+        r = self._chuc_vu.get(cv_id)
+        if not r:
+            return
+        self._view.editChucVuTen.setText(r["ten"])
+        self._view.spinChucVuHeSo.setValue(float(r["he_so"]))
+
+    def _on_chuc_vu_them(self) -> None:
+        ten = self._view.editChucVuTen.text().strip()
+        if not ten:
+            QMessageBox.warning(self._view, "Thiếu dữ liệu", "Nhập tên chức vụ.")
+            return
+        try:
+            self._chuc_vu.create(ten, self._view.spinChucVuHeSo.value())
+        except sqlite3.Error as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        self.refresh_chuc_vu()
+
+    def _on_chuc_vu_sua(self) -> None:
+        cv_id = self._selected_chuc_vu_id()
+        if cv_id is None:
+            QMessageBox.information(self._view, "Chọn chức vụ", "Chọn một dòng trong bảng.")
+            return
+        ten = self._view.editChucVuTen.text().strip()
+        if not ten:
+            QMessageBox.warning(self._view, "Thiếu dữ liệu", "Nhập tên chức vụ.")
+            return
+        try:
+            self._chuc_vu.update(cv_id, ten, self._view.spinChucVuHeSo.value())
+        except sqlite3.Error as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        self.refresh_chuc_vu()
+
+    def _on_chuc_vu_xoa(self) -> None:
+        cv_id = self._selected_chuc_vu_id()
+        if cv_id is None:
+            QMessageBox.information(self._view, "Chọn chức vụ", "Chọn một dòng trong bảng.")
+            return
+        if QMessageBox.question(self._view, "Xác nhận", "Xóa chức vụ này?") != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            self._chuc_vu.delete(cv_id)
+        except sqlite3.Error as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        self.refresh_chuc_vu()
+
+    # --- Ca làm ---
+    def refresh_ca_lam(self) -> None:
+        rows = self._ca_lam.list_all()
+        t = self._view.tableCaLam
+        t.setRowCount(len(rows))
+        for i, r in enumerate(rows):
+            t.setItem(i, 0, QTableWidgetItem(str(r["id"])))
+            t.setItem(i, 1, QTableWidgetItem(r["ten"]))
+            t.setItem(i, 2, QTableWidgetItem(r["gio_bat_dau"]))
+            t.setItem(i, 3, QTableWidgetItem(r["gio_ket_thuc"]))
+            t.setItem(i, 4, QTableWidgetItem(f"{float(r['he_so']):.2f}"))
+        t.clearSelection()
+        self._view.editCaTen.clear()
+        self._view.editCaBatDau.clear()
+        self._view.editCaKetThuc.clear()
+        self._view.spinCaHeSo.setValue(1.0)
+        self._reload_combo_cc_ca()
+
+    def _reload_combo_cc_ca(self) -> None:
+        c = self._view.comboCCCa
+        c.clear()
+        for r in self._ca_lam.list_all():
+            c.addItem(f"{r['ten']} (x{float(r['he_so']):.2f})", int(r["id"]))
+
+    def _selected_ca_id(self) -> int | None:
+        rows = self._view.tableCaLam.selectionModel().selectedRows()
+        if not rows:
+            return None
+        it = self._view.tableCaLam.item(rows[0].row(), 0)
+        return int(it.text()) if it else None
+
+    def _on_ca_select(self) -> None:
+        ca_id = self._selected_ca_id()
+        if ca_id is None:
+            return
+        r = self._ca_lam.get(ca_id)
+        if not r:
+            return
+        self._view.editCaTen.setText(r["ten"])
+        self._view.editCaBatDau.setText(r["gio_bat_dau"])
+        self._view.editCaKetThuc.setText(r["gio_ket_thuc"])
+        self._view.spinCaHeSo.setValue(float(r["he_so"]))
+
+    def _on_ca_them(self) -> None:
+        ten = self._view.editCaTen.text().strip()
+        bd = self._view.editCaBatDau.text().strip()
+        kt = self._view.editCaKetThuc.text().strip()
+        if not ten or not bd or not kt:
+            QMessageBox.warning(self._view, "Thiếu dữ liệu", "Nhập tên ca và giờ bắt đầu/kết thúc (HH:MM).")
+            return
+        try:
+            self._ca_lam.create(ten, bd, kt, self._view.spinCaHeSo.value())
+        except sqlite3.Error as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        self.refresh_ca_lam()
+
+    def _on_ca_sua(self) -> None:
+        ca_id = self._selected_ca_id()
+        if ca_id is None:
+            QMessageBox.information(self._view, "Chọn ca", "Chọn một dòng trong bảng.")
+            return
+        ten = self._view.editCaTen.text().strip()
+        bd = self._view.editCaBatDau.text().strip()
+        kt = self._view.editCaKetThuc.text().strip()
+        if not ten or not bd or not kt:
+            QMessageBox.warning(self._view, "Thiếu dữ liệu", "Nhập tên ca và giờ bắt đầu/kết thúc (HH:MM).")
+            return
+        try:
+            self._ca_lam.update(ca_id, ten, bd, kt, self._view.spinCaHeSo.value())
+        except sqlite3.Error as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        self.refresh_ca_lam()
+
+    def _on_ca_xoa(self) -> None:
+        ca_id = self._selected_ca_id()
+        if ca_id is None:
+            QMessageBox.information(self._view, "Chọn ca", "Chọn một dòng trong bảng.")
+            return
+        if QMessageBox.question(self._view, "Xác nhận", "Xóa ca này?") != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            self._ca_lam.delete(ca_id)
+        except sqlite3.Error as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        self.refresh_ca_lam()
+
+    # --- Chấm công & lương ---
+    def refresh_cham_cong(self) -> None:
+        tu = self._view.dateLuongTu.date().toString("yyyy-MM-dd")
+        den = self._view.dateLuongDen.date().toString("yyyy-MM-dd")
+        rows = self._phan_cong.list_by_date_range(tu, den)
+        t = self._view.tableChamCong
+        t.setRowCount(len(rows))
+        for i, r in enumerate(rows):
+            t.setItem(i, 0, QTableWidgetItem(str(r["id"])))
+            t.setItem(i, 1, QTableWidgetItem(str(r["ngay"])))
+            t.setItem(i, 2, QTableWidgetItem(str(r["nhan_vien_ten"])))
+            t.setItem(i, 3, QTableWidgetItem(str(r["ca_ten"])))
+            t.setItem(i, 4, QTableWidgetItem(str(r["gio_bat_dau"])))
+            t.setItem(i, 5, QTableWidgetItem(str(r["gio_ket_thuc"])))
+            t.setItem(i, 6, QTableWidgetItem(f"{float(r['ca_he_so'] or 1.0):.2f}"))
+            t.setItem(i, 7, QTableWidgetItem(str(r["ghi_chu"] or "")))
+
+    def refresh_bang_luong(self) -> None:
+        self._view.tableBangLuong.setRowCount(0)
+        self._view.labelTongLuong.setText("Tổng: 0 VNĐ")
+
+    def _selected_cham_cong_id(self) -> int | None:
+        rows = self._view.tableChamCong.selectionModel().selectedRows()
+        if not rows:
+            return None
+        it = self._view.tableChamCong.item(rows[0].row(), 0)
+        return int(it.text()) if it else None
+
+    def _on_cham_cong_them(self) -> None:
+        nv_id = self._view.comboCCNhanVien.currentData()
+        ca_id = self._view.comboCCCa.currentData()
+        if nv_id is None or ca_id is None:
+            QMessageBox.warning(self._view, "Thiếu dữ liệu", "Chọn nhân viên và ca.")
+            return
+        ngay = self._view.dateCCNgay.date().toString("yyyy-MM-dd")
+        try:
+            # Phân ca: click thêm 1 ca; tăng ca = thêm nhiều dòng (cùng ngày, thêm ca khác)
+            self._phan_cong.create(int(nv_id), int(ca_id), ngay)
+        except Exception as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        self.refresh_cham_cong()
+
+    def _on_cham_cong_xoa(self) -> None:
+        cc_id = self._selected_cham_cong_id()
+        if cc_id is None:
+            QMessageBox.information(self._view, "Chọn dòng", "Chọn một dòng phân công để xóa.")
+            return
+        if QMessageBox.question(self._view, "Xác nhận", "Xóa phân công ca này?") != QMessageBox.StandardButton.Yes:
+            return
+        self._phan_cong.delete(cc_id)
+        self.refresh_cham_cong()
+
+    def _on_tinh_luong(self) -> None:
+        from datetime import date as _date
+        from app.models.bang_luong_model import ky_luong_15
+
+        tu_d, den_d = ky_luong_15(_date.today())
+        tu = tu_d.isoformat()
+        den = den_d.isoformat()
+        self._view.dateLuongTu.setDate(tu_d)
+        self._view.dateLuongDen.setDate(den_d)
+        rows = self._bang_luong.tinh_bang_luong_tu_phan_cong(tu, den)
+        t = self._view.tableBangLuong
+        t.setRowCount(len(rows))
+        tong = 0.0
+        for i, r in enumerate(rows):
+            t.setItem(i, 0, QTableWidgetItem(r.ten))
+            t.setItem(i, 1, QTableWidgetItem(r.chuc_vu))
+            t.setItem(i, 2, QTableWidgetItem(_money(r.luong_gio)))
+            t.setItem(i, 3, QTableWidgetItem(f"{r.tong_gio:.2f}"))
+            t.setItem(i, 4, QTableWidgetItem(_money(r.tong_tien)))
+            t.setItem(i, 5, QTableWidgetItem(f"Kỳ 15: {tu} → {den}"))
+            tong += r.tong_tien
+        self._view.labelTongLuong.setText(f"Tổng: {_money(tong)} VNĐ")
+
+    def _on_tra_luong(self) -> None:
+        from datetime import date as _date
+        from app.models.bang_luong_model import ky_luong_15
+
+        tu_d, den_d = ky_luong_15(_date.today())
+        tu = tu_d.isoformat()
+        den = den_d.isoformat()
+        rows = self._bang_luong.tinh_bang_luong_tu_phan_cong(tu, den)
+        if not rows:
+            QMessageBox.information(self._view, "Không có dữ liệu", "Kỳ này chưa có phân công ca.")
+            return
+        try:
+            n = self._bang_luong.chot_va_tra_luong(tu, den, rows, ghi_chu="Trả lương kỳ 15")
+        except ValueError as e:
+            QMessageBox.warning(self._view, "Không thể trả lương", str(e))
+            return
+        except sqlite3.Error as e:
+            QMessageBox.critical(self._view, "Lỗi", str(e))
+            return
+        QMessageBox.information(
+            self._view, "Đã trả lương", f"Đã chốt & trả lương kỳ {tu} → {den} cho {n} nhân viên."
+        )
 
     def _on_nv_xoa(self) -> None:
         nid = self._selected_nv_table_id()
