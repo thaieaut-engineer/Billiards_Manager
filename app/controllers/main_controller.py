@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -88,6 +89,9 @@ class MainController:
         self._init_tables()
         self._setup_loai_ban_combo()
         self._wire_signals()
+        self._setup_menu_cha_con()
+        # Chỉ dùng menu trái để điều hướng, không hiển thị tab phía trên.
+        self._view.tabWidget.tabBar().hide()
         self._apply_permissions()
         self._setup_session_status()
         self.refresh_loai_ban()
@@ -268,6 +272,80 @@ class MainController:
         v.btnLoaiBanSua.clicked.connect(self._on_loai_ban_sua)
         v.btnLoaiBanXoa.clicked.connect(self._on_loai_ban_xoa)
         v.tableLoaiBan.itemSelectionChanged.connect(self._on_loai_ban_select)
+
+    def _setup_menu_cha_con(self) -> None:
+        """Menu cha/con ở sidebar: click mục con để đổi trang tabWidget."""
+        v = self._view
+        mapping: dict[str, str] = {
+            # CRUD
+            "Bàn": "tabBan",
+            "Loại bàn": "tabLoaiBan",
+            "Dịch vụ": "tabDichVu",
+            "Nhân viên": "tabNhanVien",
+            "Chức vụ": "tabChucVu",
+            "Ca làm": "tabCaLam",
+            "Doanh thu": "tabDoanhThu",
+            "Tài khoản": "tabTaiKhoan",
+            # Vận hành
+            "Phiên chơi": "tabPhienChoi",
+            "Hóa đơn": "tabHoaDon",
+            # Lương
+            "Phân ca & trả lương": "tabLuong",
+        }
+        reverse_mapping: dict[str, str] = {tab: label for label, tab in mapping.items()}
+
+        lists = (v.listMenuCrud, v.listMenuVanHanh, v.listMenuBaoCao)
+
+        def clear_other_selections(active) -> None:
+            for lw in lists:
+                if lw is not active:
+                    lw.blockSignals(True)
+                    lw.clearSelection()
+                    lw.blockSignals(False)
+
+        def navigate_by_label(label: str, source_list=None) -> None:
+            tab_name = mapping.get(label)
+            if not tab_name:
+                return
+            idx = self._tab_index_by_name(tab_name)
+            if idx >= 0:
+                if source_list is not None:
+                    clear_other_selections(source_list)
+                self._view.tabWidget.setCurrentIndex(idx)
+
+        def on_click(item) -> None:
+            if item is None:
+                return
+            lw = item.listWidget()
+            navigate_by_label(item.text(), lw)
+
+        def highlight_for_current_tab(_index: int) -> None:
+            w = self._view.tabWidget.currentWidget()
+            if w is None:
+                return
+            label = reverse_mapping.get(w.objectName())
+            if not label:
+                return
+            for lw in lists:
+                # tìm item theo text
+                items = lw.findItems(label, Qt.MatchFlag.MatchExactly)
+                if items:
+                    lw.blockSignals(True)
+                    lw.setCurrentItem(items[0])
+                    lw.setCurrentRow(lw.row(items[0]))
+                    lw.blockSignals(False)
+                    clear_other_selections(lw)
+                    break
+
+        for lw in lists:
+            lw.itemClicked.connect(on_click)
+
+        self._view.tabWidget.currentChanged.connect(highlight_for_current_tab)
+
+        # mặc định chọn trang đầu tiên (Bàn)
+        if v.listMenuCrud.count() > 0:
+            v.listMenuCrud.setCurrentRow(0)
+            navigate_by_label(str(v.listMenuCrud.currentItem().text()), v.listMenuCrud)
 
     def _setup_doanh_thu_dates(self) -> None:
         today = date.today()
