@@ -1390,7 +1390,7 @@
           <item>
            <widget class="QPushButton" name="btnXuatHoaDon">
             <property name="text">
-             <string>Xuất hóa đơn (TXT)…</string>
+             <string>Xuất hóa đơn (PDF)…</string>
             </property>
            </widget>
           </item>

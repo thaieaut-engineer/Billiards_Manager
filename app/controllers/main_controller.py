@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -9,6 +10,8 @@ from datetime import date, datetime
 from pathlib import Path
 
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QTextDocument
+from PyQt6.QtPrintSupport import QPrinter
 from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -42,6 +45,65 @@ from app.views import MainWindowView
 
 def _money(v: float) -> str:
     return f"{int(round(v)):,}".replace(",", ".")
+
+
+def _hoa_don_pdf_html(head: sqlite3.Row, details: list[sqlite3.Row]) -> str:
+    rows: list[str] = []
+    for d in details:
+        sl = int(d["so_luong"])
+        tt = float(d["thanh_tien"])
+        don_gia = tt / sl if sl > 0 else 0.0
+        rows.append(
+            "<tr>"
+            f"<td>{html.escape(str(d['ten_dv'] or ''))}</td>"
+            f"<td style='text-align:right'>{sl}</td>"
+            f"<td style='text-align:right'>{_money(don_gia)}</td>"
+            f"<td style='text-align:right'>{_money(tt)}</td>"
+            "</tr>"
+        )
+    body_rows = "".join(rows) if rows else (
+        "<tr><td colspan='4'><i>Không có dịch vụ</i></td></tr>"
+    )
+    tb = float(head["tien_ban"])
+    tdv = float(head["tien_dich_vu"])
+    tong = float(head["tong_tien"])
+    tg = float(head["thoi_gian_choi"])
+    return f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"/>
+<style>
+body {{ font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; }}
+h1 {{ font-size: 16pt; text-align: center; margin-bottom: 16px; }}
+.info td {{ padding: 2px 8px 2px 0; vertical-align: top; }}
+.info td:first-child {{ font-weight: bold; white-space: nowrap; }}
+table.detail {{ width: 100%; border-collapse: collapse; margin-top: 14px; }}
+table.detail th, table.detail td {{ border: 1px solid #333; padding: 6px 8px; }}
+table.detail th {{ background: #eee; text-align: left; }}
+table.detail td:nth-child(n+2) {{ text-align: right; }}
+.totals {{ margin-top: 14px; width: 100%; }}
+.totals td {{ padding: 4px 0; }}
+.totals td:first-child {{ text-align: right; font-weight: bold; padding-right: 12px; }}
+.totals td:last-child {{ text-align: right; }}
+</style></head><body>
+<h1>HÓA ĐƠN QUÁN BI-A</h1>
+<table class="info">
+<tr><td>Số hóa đơn</td><td>{int(head['id'])}</td></tr>
+<tr><td>Bàn</td><td>{html.escape(str(head['ten_ban'] or ''))}</td></tr>
+<tr><td>Phiên chơi</td><td>{int(head['phien_id'])}</td></tr>
+<tr><td>Giờ bắt đầu</td><td>{html.escape(str(head['gio_bat_dau'] or ''))}</td></tr>
+<tr><td>Giờ kết thúc</td><td>{html.escape(str(head['gio_ket_thuc'] or ''))}</td></tr>
+<tr><td>Thời gian chơi</td><td>{tg:.2f} giờ</td></tr>
+<tr><td>Ngày lập</td><td>{html.escape(str(head['ngay_tao'] or ''))}</td></tr>
+</table>
+<table class="detail">
+<tr><th>Dịch vụ</th><th>SL</th><th>Đơn giá (VNĐ)</th><th>Thành tiền (VNĐ)</th></tr>
+{body_rows}
+</table>
+<table class="totals">
+<tr><td>Tiền bàn</td><td>{_money(tb)} VNĐ</td></tr>
+<tr><td>Tiền dịch vụ</td><td>{_money(tdv)} VNĐ</td></tr>
+<tr><td>TỔNG CỘNG</td><td>{_money(tong)} VNĐ</td></tr>
+</table>
+</body></html>"""
 
 
 @dataclass
@@ -1774,36 +1836,25 @@ class MainController:
             return
         path, _ = QFileDialog.getSaveFileName(
             self._view,
-            "Lưu hóa đơn",
-            str(Path.home() / f"hoa_don_{hid}.txt"),
-            "Text (*.txt);;All (*)",
+            "Lưu hóa đơn PDF",
+            str(Path.home() / f"hoa_don_{hid}.pdf"),
+            "PDF (*.pdf);;All (*)",
         )
         if not path:
             return
-        lines = [
-            "HÓA ĐƠN QUÁN BI-A",
-            f"Số hóa đơn: {head['id']}",
-            f"Bàn: {head['ten_ban']}",
-            f"Phiên chơi: {head['phien_id']}",
-            f"Giờ bắt đầu: {head['gio_bat_dau']}",
-            f"Giờ kết thúc: {head['gio_ket_thuc']}",
-            f"Thời gian chơi (giờ): {float(head['thoi_gian_choi']):.2f}",
-            f"Tiền bàn: {_money(float(head['tien_ban']))} VNĐ",
-            f"Tiền dịch vụ: {_money(float(head['tien_dich_vu']))} VNĐ",
-            f"TỔNG CỘNG: {_money(float(head['tong_tien']))} VNĐ",
-            f"Ngày lập: {head['ngay_tao']}",
-            "",
-            "Chi tiết dịch vụ:",
-        ]
-        for d in details:
-            sl = int(d["so_luong"])
-            tt = float(d["thanh_tien"])
-            don_gia = tt / sl if sl > 0 else 0.0
-            lines.append(
-                f"  - {d['ten_dv']}: SL {sl} x {_money(don_gia)} = {_money(tt)}"
-            )
-        text = "\n".join(lines)
-        Path(path).write_text(text, encoding="utf-8")
+        if not str(path).lower().endswith(".pdf"):
+            path = str(path) + ".pdf"
+        html_doc = _hoa_don_pdf_html(head, details)
+        try:
+            printer = QPrinter(QPrinter.PrinterMode.HighResolution)
+            printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
+            printer.setOutputFileName(path)
+            doc = QTextDocument()
+            doc.setHtml(html_doc)
+            doc.print(printer)
+        except OSError as e:
+            QMessageBox.critical(self._view, "Lỗi", f"Không ghi được file PDF:\n{e}")
+            return
         QMessageBox.information(self._view, "Đã xuất", f"Đã lưu:\n{path}")
 
     # --- Doanh thu ---
